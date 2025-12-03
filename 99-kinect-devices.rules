@@ -1,0 +1,46 @@
+# udev rules for Kinect devices (Xbox 360 Kinect, Kinect v2/One, ASUS Xtion)
+# This file should be placed in /etc/udev/rules.d/
+# After adding, run: sudo udevadm control --reload-rules && sudo udevadm trigger
+
+# ============================================================
+# Microsoft Kinect for Xbox 360 (Kinect v1)
+# ============================================================
+# Kinect Camera
+SUBSYSTEM=="usb", ATTR{idVendor}=="045e", ATTR{idProduct}=="02ae", MODE="0666", GROUP="plugdev"
+# Kinect Motor
+SUBSYSTEM=="usb", ATTR{idVendor}=="045e", ATTR{idProduct}=="02b0", MODE="0666", GROUP="plugdev"
+# Kinect Audio
+SUBSYSTEM=="usb", ATTR{idVendor}=="045e", ATTR{idProduct}=="02ad", MODE="0666", GROUP="plugdev"
+
+# ============================================================
+# Microsoft Kinect for Xbox One (Kinect v2)
+# ============================================================
+# Kinect v2 Camera
+SUBSYSTEM=="usb", ATTR{idVendor}=="045e", ATTR{idProduct}=="02c4", MODE="0666", GROUP="plugdev"
+SUBSYSTEM=="usb", ATTR{idVendor}=="045e", ATTR{idProduct}=="02d8", MODE="0666", GROUP="plugdev"
+# Kinect v2 Audio
+SUBSYSTEM=="usb", ATTR{idVendor}=="045e", ATTR{idProduct}=="02d9", MODE="0666", GROUP="plugdev"
+
+# ============================================================
+# ASUS Xtion PRO / PRO LIVE (PrimeSense-based devices)
+# ============================================================
+# ASUS Xtion PRO
+SUBSYSTEM=="usb", ATTR{idVendor}=="1d27", ATTR{idProduct}=="0600", MODE="0666", GROUP="plugdev"
+# ASUS Xtion PRO LIVE (this is your device: 1d27/0601)
+SUBSYSTEM=="usb", ATTR{idVendor}=="1d27", ATTR{idProduct}=="0601", MODE="0666", GROUP="plugdev"
+# ASUS Xtion
+SUBSYSTEM=="usb", ATTR{idVendor}=="1d27", ATTR{idProduct}=="0609", MODE="0666", GROUP="plugdev"
+
+# ============================================================
+# PrimeSense devices (catch-all for other PrimeSense sensors)
+# ============================================================
+SUBSYSTEM=="usb", ATTR{idVendor}=="1d27", MODE="0666", GROUP="plugdev"
+
+# ============================================================
+# Additional OpenNI compatible devices
+# ============================================================
+# Apple iSight (sometimes detected)
+SUBSYSTEM=="usb", ATTR{idVendor}=="05ac", ATTR{idProduct}=="8600", MODE="0666", GROUP="plugdev"
+
+# Make sure the devices are accessible
+KERNEL=="hidraw*", SUBSYSTEM=="hidraw", MODE="0666", GROUP="plugdev"
