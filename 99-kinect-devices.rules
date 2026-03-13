@@ -1,0 +1,96 @@
+# udev rules for Kinect devices (Xbox 360 Kinect, Kinect v2/One, ASUS Xtion)
+# This file should be placed in /etc/udev/rules.d/
+# After adding, run: sudo udevadm control --reload-rules && sudo udevadm trigger
+#
+# Note: We use ATTRS (with S) to match attributes from parent devices in the device chain
+# and SUBSYSTEM=="usb" with ATTR for direct device matching
+
+# ============================================================
+# Microsoft Kinect for Xbox One (Kinect v2) - Primary Rules
+# ============================================================
+# Kinect v2 Main Camera/Depth Sensor (045e:02c4)
+SUBSYSTEM=="usb", ATTR{idVendor}=="045e", ATTR{idProduct}=="02c4", MODE="0666", GROUP="plugdev"
+SUBSYSTEMS=="usb", ATTRS{idVendor}=="045e", ATTRS{idProduct}=="02c4", MODE="0666", GROUP="plugdev"
+
+# Kinect v2 Hub (045e:02c3)
+SUBSYSTEM=="usb", ATTR{idVendor}=="045e", ATTR{idProduct}=="02c3", MODE="0666", GROUP="plugdev"
+SUBSYSTEMS=="usb", ATTRS{idVendor}=="045e", ATTRS{idProduct}=="02c3", MODE="0666", GROUP="plugdev"
+
+# Kinect v2 Audio Interface (045e:02d8)
+SUBSYSTEM=="usb", ATTR{idVendor}=="045e", ATTR{idProduct}=="02d8", MODE="0666", GROUP="plugdev"
+SUBSYSTEMS=="usb", ATTRS{idVendor}=="045e", ATTRS{idProduct}=="02d8", MODE="0666", GROUP="plugdev"
+
+# Kinect v2 NUI Sensor Adaptor (045e:02d9)
+SUBSYSTEM=="usb", ATTR{idVendor}=="045e", ATTR{idProduct}=="02d9", MODE="0666", GROUP="plugdev"
+SUBSYSTEMS=="usb", ATTRS{idVendor}=="045e", ATTRS{idProduct}=="02d9", MODE="0666", GROUP="plugdev"
+
+# ============================================================
+# Microsoft Kinect for Xbox 360 (Kinect v1)
+# ============================================================
+# Kinect v1 Camera (045e:02ae)
+SUBSYSTEM=="usb", ATTR{idVendor}=="045e", ATTR{idProduct}=="02ae", MODE="0666", GROUP="plugdev"
+SUBSYSTEMS=="usb", ATTRS{idVendor}=="045e", ATTRS{idProduct}=="02ae", MODE="0666", GROUP="plugdev"
+
+# Kinect v1 Motor (045e:02b0)
+SUBSYSTEM=="usb", ATTR{idVendor}=="045e", ATTR{idProduct}=="02b0", MODE="0666", GROUP="plugdev"
+SUBSYSTEMS=="usb", ATTRS{idVendor}=="045e", ATTRS{idProduct}=="02b0", MODE="0666", GROUP="plugdev"
+
+# Kinect v1 Audio (045e:02ad)
+SUBSYSTEM=="usb", ATTR{idVendor}=="045e", ATTR{idProduct}=="02ad", MODE="0666", GROUP="plugdev"
+SUBSYSTEMS=="usb", ATTRS{idVendor}=="045e", ATTRS{idProduct}=="02ad", MODE="0666", GROUP="plugdev"
+
+# ============================================================
+# Catch-all for Microsoft Kinect devices (vendor 045e)
+# This ensures any Kinect-related device gets proper permissions
+# ============================================================
+SUBSYSTEM=="usb", ATTRS{idVendor}=="045e", ATTRS{idProduct}=="02c*", MODE="0666", GROUP="plugdev"
+SUBSYSTEM=="usb", ATTRS{idVendor}=="045e", ATTRS{idProduct}=="02d*", MODE="0666", GROUP="plugdev"
+
+# ============================================================
+# ASUS Xtion PRO / PRO LIVE (PrimeSense-based devices)
+# ============================================================
+# ASUS Xtion PRO (1d27:0600)
+SUBSYSTEM=="usb", ATTR{idVendor}=="1d27", ATTR{idProduct}=="0600", MODE="0666", GROUP="plugdev"
+SUBSYSTEMS=="usb", ATTRS{idVendor}=="1d27", ATTRS{idProduct}=="0600", MODE="0666", GROUP="plugdev"
+
+# ASUS Xtion PRO LIVE (1d27:0601)
+SUBSYSTEM=="usb", ATTR{idVendor}=="1d27", ATTR{idProduct}=="0601", MODE="0666", GROUP="plugdev"
+SUBSYSTEMS=="usb", ATTRS{idVendor}=="1d27", ATTRS{idProduct}=="0601", MODE="0666", GROUP="plugdev"
+
+# ASUS Xtion (1d27:0609)
+SUBSYSTEM=="usb", ATTR{idVendor}=="1d27", ATTR{idProduct}=="0609", MODE="0666", GROUP="plugdev"
+SUBSYSTEMS=="usb", ATTRS{idVendor}=="1d27", ATTRS{idProduct}=="0609", MODE="0666", GROUP="plugdev"
+
+# PrimeSense catch-all (vendor 1d27)
+SUBSYSTEM=="usb", ATTR{idVendor}=="1d27", MODE="0666", GROUP="plugdev"
+SUBSYSTEMS=="usb", ATTRS{idVendor}=="1d27", MODE="0666", GROUP="plugdev"
+
+# ============================================================
+# USB device node permissions (for /dev/bus/usb/*)
+# These rules specifically target the USB device nodes
+# ============================================================
+# Kinect v2 devices
+SUBSYSTEM=="usb_device", ATTRS{idVendor}=="045e", ATTRS{idProduct}=="02c4", MODE="0666", GROUP="plugdev"
+SUBSYSTEM=="usb_device", ATTRS{idVendor}=="045e", ATTRS{idProduct}=="02c3", MODE="0666", GROUP="plugdev"
+SUBSYSTEM=="usb_device", ATTRS{idVendor}=="045e", ATTRS{idProduct}=="02d8", MODE="0666", GROUP="plugdev"
+SUBSYSTEM=="usb_device", ATTRS{idVendor}=="045e", ATTRS{idProduct}=="02d9", MODE="0666", GROUP="plugdev"
+
+# Kinect v1 devices
+SUBSYSTEM=="usb_device", ATTRS{idVendor}=="045e", ATTRS{idProduct}=="02ae", MODE="0666", GROUP="plugdev"
+SUBSYSTEM=="usb_device", ATTRS{idVendor}=="045e", ATTRS{idProduct}=="02b0", MODE="0666", GROUP="plugdev"
+SUBSYSTEM=="usb_device", ATTRS{idVendor}=="045e", ATTRS{idProduct}=="02ad", MODE="0666", GROUP="plugdev"
+
+# ASUS Xtion devices
+SUBSYSTEM=="usb_device", ATTRS{idVendor}=="1d27", MODE="0666", GROUP="plugdev"
+
+# ============================================================
+# HID raw devices (for any related HID interfaces)
+# ============================================================
+KERNEL=="hidraw*", SUBSYSTEM=="hidraw", MODE="0666", GROUP="plugdev"
+
+# ============================================================
+# Generic fallback for all Microsoft Kinect vendor devices
+# ============================================================
+SUBSYSTEM=="usb", ATTR{idVendor}=="045e", ENV{ID_MODEL}=="*Kinect*", MODE="0666", GROUP="plugdev"
+SUBSYSTEM=="usb", ATTR{idVendor}=="045e", ENV{ID_MODEL}=="*NUI*", MODE="0666", GROUP="plugdev"
+SUBSYSTEM=="usb", ATTR{idVendor}=="045e", ENV{ID_MODEL}=="*Xbox*NUI*", MODE="0666", GROUP="plugdev"
