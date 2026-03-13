@@ -216,7 +216,7 @@ def launch_setup(context, *args, **kwargs):
             'camera2_yaw': cam2_yaw,
             'camera2_enabled': True,
             # Settings
-            'world_frame': 'world',
+            'world_frame': 'map',
             'publish_rate': 50.0,
         }],
     )

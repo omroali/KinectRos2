@@ -54,12 +54,12 @@ class DynamicCameraTF(Node):
         position_range = FloatingPointRange(
             from_value=-10.0,
             to_value=10.0,
-            step=0.01
+            step=0.0  # 0 means no step constraint
         )
         angle_range = FloatingPointRange(
-            from_value=-3.14159,
-            to_value=3.14159,
-            step=0.01
+            from_value=-3.15,
+            to_value=3.15,
+            step=0.0  # 0 means no step constraint
         )
 
         pos_desc = ParameterDescriptor(
@@ -92,7 +92,7 @@ class DynamicCameraTF(Node):
         self.declare_parameter('camera2_enabled', True)
 
         # World frame
-        self.declare_parameter('world_frame', 'world')
+        self.declare_parameter('world_frame', 'map')
 
         # Publish rate
         self.declare_parameter('publish_rate', 50.0)

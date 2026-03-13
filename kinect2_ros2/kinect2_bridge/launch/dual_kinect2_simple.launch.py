@@ -208,14 +208,14 @@ def generate_launch_description():
         ]
     )
 
-    # World frame publisher (fixed reference)
+    # World frame publisher (fixed reference) - uses map as parent frame
     world_frame_publisher = Node(
         package="tf2_ros",
         executable="static_transform_publisher",
         name="world_frame_publisher",
         arguments=[
             "--frame-id",
-            "world",
+            "map",
             "--child-frame-id",
             [camera1_namespace, "_link"],
             "--x",
@@ -234,14 +234,14 @@ def generate_launch_description():
         condition=IfCondition(publish_transforms),
     )
 
-    # Camera 2 transform relative to world frame
+    # Camera 2 transform relative to map frame
     camera2_transform_publisher = Node(
         package="tf2_ros",
         executable="static_transform_publisher",
         name="camera2_transform_publisher",
         arguments=[
             "--frame-id",
-            "world",
+            "map",
             "--child-frame-id",
             [camera2_namespace, "_link"],
             "--x",

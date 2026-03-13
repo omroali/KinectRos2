@@ -120,5 +120,5 @@ launch:
     pkg: "tf2_ros"
     exec: "static_transform_publisher"
     name: "world_frame_publisher"
-    args: "--frame-id world --child-frame-id $(var base_name)_link --x 0.0 --y 0.0 --z 0.0 --roll 0.0 --pitch 0.0 --yaw 0.0"
+    args: "--frame-id map --child-frame-id $(var base_name)_link --x 0.0 --y 0.0 --z 0.0 --roll 0.0 --pitch 0.0 --yaw 0.0"
     if: "$(var publish_world_frame)"
