@@ -1,7 +1,3 @@
-[submodule "ros2_ws/kinect2_ros2"]
-	path = ros2_ws/kinect2_ros2
+[submodule "kinect2_ros2"]
+	path = kinect2_ros2
 	url = https://github.com/krepa098/kinect2_ros2.git
-[submodule "openni2_camera"]
-	path = openni2_camera
-	url = https://github.com/ros-drivers/openni2_camera.git
-	branch = iron

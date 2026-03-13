@@ -24,9 +24,7 @@ services:
       - /etc/udev/rules.d:/etc/udev/rules.d:ro
 
       # Project source code
-      - ../ros2_ws:/home/ros/base_ws/src/ros2_ws:rw
       - ../kinect2_ros2:/home/ros/base_ws/src/kinect2_ros2:rw
-      - ../openni2_camera:/home/ros/base_ws/src/openni2_camera:rw
       - ../bash_scripts/container:/home/ros/bash_scripts:rw
       - ../config:/home/ros/config:rw
 
