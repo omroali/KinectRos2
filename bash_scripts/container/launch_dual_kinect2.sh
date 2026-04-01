@@ -18,7 +18,7 @@ echo -e "${GREEN}=== Dual Kinect v2 Launch Script ===${NC}"
 if [ -z "$ROS_DISTRO" ]; then
     echo -e "${RED}Error: ROS 2 environment not sourced!${NC}"
     echo "Please source your ROS 2 installation:"
-    echo "  source /opt/ros/humble/setup.bash"
+    echo "  source /opt/ros/jazzy/setup.bash"
     echo "  source ~/base_ws/install/setup.bash"
     exit 1
 fi

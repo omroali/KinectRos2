@@ -1,6 +1,6 @@
 # KinectRos22
 
-A ROS 2 Humble workspace for Kinect v2 (Xbox One Kinect) sensors with Docker support.
+A ROS 2 Jazzy workspace for Kinect v2 (Xbox One Kinect) sensors with Docker support.
 
 ## Features
 
@@ -20,7 +20,7 @@ A ROS 2 Humble workspace for Kinect v2 (Xbox One Kinect) sensors with Docker sup
 
 ### Software
 - Docker & Docker Compose
-- Ubuntu 22.04 (host)
+- Ubuntu 24.04 (host recommended) or 22.04
 
 ## Quick Start
 
@@ -36,14 +36,14 @@ sudo ./device_setup.sh
 ```bash
 cd docker
 docker compose up -d
-docker compose exec ros2_humble bash
+docker compose exec ros2_jazzy bash
 ```
 
 ### 3. Build Workspace
 
 ```bash
 cd ~/base_ws
-source /opt/ros/humble/setup.bash
+source /opt/ros/jazzy/setup.bash
 colcon build --symlink-install
 source install/setup.bash
 ```

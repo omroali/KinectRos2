@@ -2,7 +2,7 @@
 
 # --- Configuration ---
 COMPOSE_FILE="docker-compose.yml"
-SERVICE_NAME="ros2_humble"
+SERVICE_NAME="ros2_jazzy"
 
 # Check if on Linux (most straightforward X11 forwarding)
 if [[ "$OSTYPE" == "linux-gnu"* ]]; then
