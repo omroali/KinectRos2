@@ -29,6 +29,7 @@ services:
 
       # X11 for GUI applications (rviz, etc.)
       - /tmp/.X11-unix:/tmp/.X11-unix:rw
+      - $HOME/.Xauthority:/root/.Xauthority:rw
 
     environment:
       - BASE_WS=/home/ros/base_ws
