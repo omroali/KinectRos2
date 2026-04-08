@@ -2,6 +2,11 @@
 
 # launch_dual_kinect2.sh
 # Launch script for dual Kinect v2 setup with ROS2
+#
+# Serial numbers are read from:  config/dual_kinect_serials.yaml
+# Camera positions are read from: config/camera_config.yaml
+#
+# To change serials or positions, edit those files and rebuild with 'colcon build'.
 
 set -e
 
@@ -26,14 +31,6 @@ fi
 # Default parameters
 CAMERA1_NS="kinect2_1"
 CAMERA2_NS="kinect2_2"
-CAMERA1_SERIAL=""
-CAMERA2_SERIAL=""
-CAMERA2_X="1.0"
-CAMERA2_Y="0.0"
-CAMERA2_Z="0.0"
-CAMERA2_ROLL="0.0"
-CAMERA2_PITCH="0.0"
-CAMERA2_YAW="-0.523599"  # -30 degrees
 LAUNCH_RVIZ="true"
 USE_TRANSFORMS="true"
 
@@ -42,24 +39,20 @@ print_usage() {
     echo "Usage: $0 [OPTIONS]"
     echo ""
     echo "Options:"
-    echo "  --camera1-ns NAME          Namespace for camera 1 (default: kinect2_1)"
-    echo "  --camera2-ns NAME          Namespace for camera 2 (default: kinect2_2)"
-    echo "  --camera1-serial SERIAL    Serial number for camera 1 (auto-detect if empty)"
-    echo "  --camera2-serial SERIAL    Serial number for camera 2 (auto-detect if empty)"
-    echo "  --camera2-x VALUE          Camera 2 X position in meters (default: 1.0)"
-    echo "  --camera2-y VALUE          Camera 2 Y position in meters (default: 0.0)"
-    echo "  --camera2-z VALUE          Camera 2 Z position in meters (default: 0.0)"
-    echo "  --camera2-roll VALUE       Camera 2 roll in radians (default: 0.0)"
-    echo "  --camera2-pitch VALUE      Camera 2 pitch in radians (default: 0.0)"
-    echo "  --camera2-yaw VALUE        Camera 2 yaw in radians (default: -0.523599)"
-    echo "  --no-rviz                  Don't launch RViz"
-    echo "  --no-transforms            Don't publish static transforms"
-    echo "  -h, --help                 Show this help message"
+    echo "  --camera1-ns NAME   Namespace for camera 1 (default: kinect2_1)"
+    echo "  --camera2-ns NAME   Namespace for camera 2 (default: kinect2_2)"
+    echo "  --no-rviz           Don't launch RViz"
+    echo "  --no-transforms     Don't publish static TF transforms"
+    echo "  -h, --help          Show this help message"
+    echo ""
+    echo "Serial numbers  -> config/dual_kinect_serials.yaml"
+    echo "Camera positions-> config/camera_config.yaml"
+    echo "Edit those files and run 'colcon build' to apply changes."
     echo ""
     echo "Examples:"
     echo "  $0"
-    echo "  $0 --camera2-x 2.0 --camera2-y 1.5 --camera2-yaw -1.5708"
-    echo "  $0 --camera1-serial 123456 --camera2-serial 234567"
+    echo "  $0 --no-rviz"
+    echo "  $0 --no-transforms"
 }
 
 while [[ $# -gt 0 ]]; do
@@ -70,38 +63,6 @@ while [[ $# -gt 0 ]]; do
             ;;
         --camera2-ns)
             CAMERA2_NS="$2"
-            shift 2
-            ;;
-        --camera1-serial)
-            CAMERA1_SERIAL="$2"
-            shift 2
-            ;;
-        --camera2-serial)
-            CAMERA2_SERIAL="$2"
-            shift 2
-            ;;
-        --camera2-x)
-            CAMERA2_X="$2"
-            shift 2
-            ;;
-        --camera2-y)
-            CAMERA2_Y="$2"
-            shift 2
-            ;;
-        --camera2-z)
-            CAMERA2_Z="$2"
-            shift 2
-            ;;
-        --camera2-roll)
-            CAMERA2_ROLL="$2"
-            shift 2
-            ;;
-        --camera2-pitch)
-            CAMERA2_PITCH="$2"
-            shift 2
-            ;;
-        --camera2-yaw)
-            CAMERA2_YAW="$2"
             shift 2
             ;;
         --no-rviz)
@@ -136,37 +97,21 @@ echo ""
 
 # Display configuration
 echo -e "${BLUE}Configuration:${NC}"
-echo "  Camera 1 Namespace: $CAMERA1_NS"
-echo "  Camera 1 Serial: ${CAMERA1_SERIAL:-auto-detect}"
-echo "  Camera 2 Namespace: $CAMERA2_NS"
-echo "  Camera 2 Serial: ${CAMERA2_SERIAL:-auto-detect}"
-echo "  Camera 2 Position: ($CAMERA2_X, $CAMERA2_Y, $CAMERA2_Z)"
-echo "  Camera 2 Orientation: (roll=$CAMERA2_ROLL, pitch=$CAMERA2_PITCH, yaw=$CAMERA2_YAW)"
-echo "  Launch RViz: $LAUNCH_RVIZ"
-echo "  Use Transforms: $USE_TRANSFORMS"
+echo "  Camera 1 Namespace : $CAMERA1_NS"
+echo "  Camera 2 Namespace : $CAMERA2_NS"
+echo "  Launch RViz        : $LAUNCH_RVIZ"
+echo "  Publish Transforms : $USE_TRANSFORMS"
+echo "  Serial numbers     : config/dual_kinect_serials.yaml"
+echo "  Camera positions   : config/camera_config.yaml"
 echo ""
 
 # Build launch command
-LAUNCH_CMD="ros2 launch kinect2_bridge dual_kinect2.launch.py"
+# Serials come from config/dual_kinect_serials.yaml
+# Positions come from config/camera_config.yaml
+LAUNCH_CMD="ros2 launch kinect2_bridge dual_kinect2_simple.launch.py"
 LAUNCH_CMD="$LAUNCH_CMD camera1_namespace:=$CAMERA1_NS"
 LAUNCH_CMD="$LAUNCH_CMD camera2_namespace:=$CAMERA2_NS"
-
-if [ -n "$CAMERA1_SERIAL" ]; then
-    LAUNCH_CMD="$LAUNCH_CMD camera1_serial:=$CAMERA1_SERIAL"
-fi
-
-if [ -n "$CAMERA2_SERIAL" ]; then
-    LAUNCH_CMD="$LAUNCH_CMD camera2_serial:=$CAMERA2_SERIAL"
-fi
-
-if [ "$USE_TRANSFORMS" == "true" ]; then
-    LAUNCH_CMD="$LAUNCH_CMD camera2_x:=$CAMERA2_X"
-    LAUNCH_CMD="$LAUNCH_CMD camera2_y:=$CAMERA2_Y"
-    LAUNCH_CMD="$LAUNCH_CMD camera2_z:=$CAMERA2_Z"
-    LAUNCH_CMD="$LAUNCH_CMD camera2_roll:=$CAMERA2_ROLL"
-    LAUNCH_CMD="$LAUNCH_CMD camera2_pitch:=$CAMERA2_PITCH"
-    LAUNCH_CMD="$LAUNCH_CMD camera2_yaw:=$CAMERA2_YAW"
-fi
+LAUNCH_CMD="$LAUNCH_CMD publish_transforms:=$USE_TRANSFORMS"
 
 # Launch cameras
 echo -e "${GREEN}Launching dual Kinect v2 cameras...${NC}"

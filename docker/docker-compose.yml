@@ -1,9 +1,9 @@
 services:
-  ros2_jazzy:
+  ros2_kinect:
     build:
       context: .
       dockerfile: Dockerfile
-    image: ros2-jazzy # resulting image name
+    image: kinect2_container 
 
     stdin_open: true
     tty: true
