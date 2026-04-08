@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# bashrc_extensions.sh
+# setup_and_build_ws.sh
 # This script sets up the ROS 2 workspace, builds it, and sources it.
 
 # Define workspace path from environment variable (set in Dockerfile/docker-compose.yml)
@@ -35,8 +35,8 @@ fi
 # Source the ROS 2 base and workspace environment
 # These are already sourced in .bashrc, but explicit sourcing ensures it's fresh
 # and visible in the current shell, especially after a build.
-echo "Sourcing ROS 2 Jazzy base environment..."
-source /opt/ros/jazzy/setup.bash
+echo "Sourcing ROS 2 base environment..."
+source /opt/ros/humble/setup.bash
 
 echo "Sourcing workspace environment..."
 source ${BASE_WS}/install/setup.bash

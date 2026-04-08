@@ -133,7 +133,7 @@ if [ -n "$ROS_DISTRO" ]; then
     pass_test "ROS 2 environment sourced: $ROS_DISTRO"
 else
     fail_test "ROS 2 environment not sourced"
-    echo "  → Run: source /opt/ros/jazzy/setup.bash"
+    echo "  → Run: source /opt/ros/humble/setup.bash"
     echo "         source ~/base_ws/install/setup.bash"
 fi
 
@@ -243,9 +243,9 @@ if [ $TESTS_FAILED -gt 0 ]; then
     if ! ldconfig -p | grep -q libfreenect2; then
         echo "2. Install libfreenect2:"
         echo "   cd ~/KinectRos22/docker"
-        echo "   docker compose down"
-        echo "   docker compose build"
-        echo "   docker compose up -d"
+        echo "   docker-compose down"
+        echo "   docker-compose build"
+        echo "   docker-compose up -d"
         echo ""
     fi
 
@@ -268,7 +268,7 @@ if [ "$TESTS_FAILED" -eq 0 ] && [ "$KINECT2_COUNT" -ge 1 ]; then
     echo "✓ System ready for Kinect v2 operation!"
     echo ""
     echo "Test single camera:"
-    echo "  ros2 launch kinect2_bridge kinect2_single.launch.py"
+    echo "  ros2 launch kinect2_bridge kinect2_bridge.launch.yaml"
     echo ""
 
     if [ "$KINECT2_COUNT" -ge 2 ]; then
@@ -290,7 +290,7 @@ else
     echo "Fix the issues above, then run this test again."
     echo ""
     echo "For detailed setup instructions:"
-    echo "  See docs/SETUP_GUIDE.md"
+    echo "  cat ~/KinectRos22/KINECT2_SETUP.md"
 fi
 
 echo ""
