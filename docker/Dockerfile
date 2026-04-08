@@ -70,7 +70,7 @@ RUN apt-get update && \
     libturbojpeg0-dev \
     libusb-1.0-0-dev \
     libomp-dev \
-    libpcap-dev \ # this is for the velodyne
+    libpcap-dev \ 
     cmake \
     pkg-config \
     freeglut3-dev \
