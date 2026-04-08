@@ -7,11 +7,39 @@
 #   - config/dual_kinect_serials.yaml  (serial numbers per camera namespace)
 #   - config/camera_config.yaml        (camera positions and orientations)
 #
+# Topic architecture (why bridge nodes run at ROOT namespace):
+# ============================================================
+# The kinect2_bridge code constructs publisher topics as:
+#
+#     create_publisher(base_name + "/qhd/image_color_rect", ...)
+#
+# base_name = "kinect2_1", no ROS namespace:
+#   relative topic "kinect2_1/qhd/image_color_rect"
+#   → resolves to /kinect2_1/qhd/image_color_rect  ✓
+#
+# base_name = "kinect2_1", namespace = "/kinect2_1"  ← OLD BROKEN APPROACH:
+#   relative topic "kinect2_1/qhd/image_color_rect" in namespace "/kinect2_1"
+#   → resolves to /kinect2_1/kinect2_1/qhd/image_color_rect  ✗  (doubled!)
+#   → depth_image_proc never receives images → device never streams → empty topics
+#
+# Fix: bridge nodes have NO namespace; depth_image_proc uses absolute remappings.
+#
+# TF chain (set Fixed Frame = "map" in RViz):
+#   map
+#   ├── kinect2_1_link          ← static_transform_publisher (camera_config.yaml)
+#   │   └── kinect2_1_rgb_optical_frame   ← bridge publishStaticTF()
+#   │       └── kinect2_1_ir_optical_frame
+#   └── kinect2_2_link
+#       └── kinect2_2_rgb_optical_frame
+#           └── kinect2_2_ir_optical_frame
+#
 # Usage:
 #   ros2 launch kinect2_bridge dual_kinect2_simple.launch.py
 #
-# To override transforms at launch time:
+# Overrides:
 #   ros2 launch kinect2_bridge dual_kinect2_simple.launch.py \
+#       camera1_namespace:=kinect2_1 \
+#       camera2_namespace:=kinect2_2 \
 #       publish_transforms:=false
 
 import os
@@ -20,266 +48,294 @@ import yaml
 from ament_index_python.packages import get_package_share_directory
 
 from launch import LaunchDescription
-from launch.actions import DeclareLaunchArgument, GroupAction
-from launch.conditions import IfCondition
+from launch.actions import DeclareLaunchArgument, OpaqueFunction, TimerAction
 from launch.substitutions import LaunchConfiguration
-from launch_ros.actions import Node, PushRosNamespace
+from launch_ros.actions import Node
+
+
+# ─────────────────────────────────────────────────────────────────── #
+#  Config helpers                                                       #
+# ─────────────────────────────────────────────────────────────────── #
+
+def _load_serials(serials_path: str) -> dict:
+    """
+    Parse dual_kinect_serials.yaml → {namespace: serial_string}.
+
+    Expected YAML format:
+        /kinect2_1/kinect2_bridge:
+          ros__parameters:
+            sensor: "001934470647"
+        /kinect2_2/kinect2_bridge:
+          ros__parameters:
+            sensor: "007425354147"
+    """
+    with open(serials_path, "r") as f:
+        data = yaml.safe_load(f)
+
+    result = {}
+    for key, val in data.items():
+        # key is like '/kinect2_1/kinect2_bridge' — take the first path component
+        ns = key.strip("/").split("/")[0]
+        result[ns] = str(val["ros__parameters"]["sensor"])
+    return result
 
 
 def _load_camera_config(config_path: str) -> dict:
-    """Parse camera_config.yaml and return a flat dict of string values ready for
-    use as static_transform_publisher arguments."""
+    """
+    Parse camera_config.yaml → flat dict of string values for
+    use as static_transform_publisher CLI arguments.
+    """
     with open(config_path, "r") as f:
         cfg = yaml.safe_load(f)
 
     def _s(val):
-        """Convert a numeric value to a plain string (no scientific notation)."""
+        """Numeric → plain string without scientific notation."""
         return str(float(val))
 
-    result = {
-        "world_frame":      cfg.get("world_frame", "map"),
-        "publish_rate":     float(cfg.get("publish_rate", 50.0)),
+    return {
+        "world_frame": cfg.get("world_frame", "map"),
         # Camera 1
-        "cam1_frame":       cfg["camera1"]["frame"],
-        "cam1_x":           _s(cfg["camera1"]["position"]["x"]),
-        "cam1_y":           _s(cfg["camera1"]["position"]["y"]),
-        "cam1_z":           _s(cfg["camera1"]["position"]["z"]),
-        "cam1_roll":        _s(cfg["camera1"]["orientation"]["roll"]),
-        "cam1_pitch":       _s(cfg["camera1"]["orientation"]["pitch"]),
-        "cam1_yaw":         _s(cfg["camera1"]["orientation"]["yaw"]),
+        "cam1_frame":  cfg["camera1"]["frame"],
+        "cam1_x":      _s(cfg["camera1"]["position"]["x"]),
+        "cam1_y":      _s(cfg["camera1"]["position"]["y"]),
+        "cam1_z":      _s(cfg["camera1"]["position"]["z"]),
+        "cam1_roll":   _s(cfg["camera1"]["orientation"]["roll"]),
+        "cam1_pitch":  _s(cfg["camera1"]["orientation"]["pitch"]),
+        "cam1_yaw":    _s(cfg["camera1"]["orientation"]["yaw"]),
         # Camera 2
-        "cam2_frame":       cfg["camera2"]["frame"],
-        "cam2_x":           _s(cfg["camera2"]["position"]["x"]),
-        "cam2_y":           _s(cfg["camera2"]["position"]["y"]),
-        "cam2_z":           _s(cfg["camera2"]["position"]["z"]),
-        "cam2_roll":        _s(cfg["camera2"]["orientation"]["roll"]),
-        "cam2_pitch":       _s(cfg["camera2"]["orientation"]["pitch"]),
-        "cam2_yaw":         _s(cfg["camera2"]["orientation"]["yaw"]),
+        "cam2_frame":  cfg["camera2"]["frame"],
+        "cam2_x":      _s(cfg["camera2"]["position"]["x"]),
+        "cam2_y":      _s(cfg["camera2"]["position"]["y"]),
+        "cam2_z":      _s(cfg["camera2"]["position"]["z"]),
+        "cam2_roll":   _s(cfg["camera2"]["orientation"]["roll"]),
+        "cam2_pitch":  _s(cfg["camera2"]["orientation"]["pitch"]),
+        "cam2_yaw":    _s(cfg["camera2"]["orientation"]["yaw"]),
     }
-    return result
 
 
-def generate_launch_description():
-    # ------------------------------------------------------------------ #
-    #  Locate installed config files                                       #
-    # ------------------------------------------------------------------ #
-    pkg_share = get_package_share_directory("kinect2_bridge")
+# ─────────────────────────────────────────────────────────────────── #
+#  OpaqueFunction                                                       #
+#  All node construction happens here so that LaunchConfiguration      #
+#  values are resolved to plain Python strings before being used in    #
+#  f-strings for absolute topic paths.                                 #
+# ─────────────────────────────────────────────────────────────────── #
+
+def launch_setup(context, *args, **kwargs):
+    # Resolve launch arguments to Python strings
+    ns1       = LaunchConfiguration("camera1_namespace").perform(context)
+    ns2       = LaunchConfiguration("camera2_namespace").perform(context)
+    do_tf_str = LaunchConfiguration("publish_transforms").perform(context)
+    do_tf     = do_tf_str.lower() in ("true", "1", "yes")
+
+    # ── Locate installed config files ──────────────────────────────── #
+    pkg_share  = get_package_share_directory("kinect2_bridge")
     config_dir = os.path.join(pkg_share, "config")
 
-    serials_yaml    = os.path.join(config_dir, "dual_kinect_serials.yaml")
-    camera_cfg_path = os.path.join(config_dir, "camera_config.yaml")
+    serials_path    = os.path.join(config_dir, "dual_kinect_serials.yaml")
+    cam_config_path = os.path.join(config_dir, "camera_config.yaml")
 
-    if not os.path.isfile(serials_yaml):
+    if not os.path.isfile(serials_path):
         raise FileNotFoundError(
-            f"Serial config not found: {serials_yaml}\n"
-            "Did you rebuild with 'colcon build'?"
+            f"Serial config not found: {serials_path}\n"
+            "Did you rebuild with 'colcon build --packages-select kinect2_bridge'?"
         )
-    if not os.path.isfile(camera_cfg_path):
+    if not os.path.isfile(cam_config_path):
         raise FileNotFoundError(
-            f"Camera config not found: {camera_cfg_path}\n"
-            "Did you rebuild with 'colcon build'?"
+            f"Camera config not found: {cam_config_path}\n"
+            "Did you rebuild with 'colcon build --packages-select kinect2_bridge'?"
         )
 
-    # Parse camera positions at launch time
-    cam = _load_camera_config(camera_cfg_path)
+    serials = _load_serials(serials_path)
+    cam     = _load_camera_config(cam_config_path)
 
-    # ------------------------------------------------------------------ #
-    #  Launch arguments                                                    #
-    # ------------------------------------------------------------------ #
-    camera1_namespace_arg = DeclareLaunchArgument(
-        "camera1_namespace",
-        default_value="kinect2_1",
-        description="ROS namespace for the first Kinect v2",
+    serial1 = serials.get(ns1, "")
+    serial2 = serials.get(ns2, "")
+
+    nodes = []
+
+    # ── Bridge nodes ───────────────────────────────────────────────── #
+    #
+    # Run at ROOT namespace (no namespace= argument).
+    #
+    # The bridge creates publishers as:
+    #   create_publisher(base_name + "/qhd/image_color_rect", ...)
+    # With base_name="kinect2_1" and no ROS namespace, the relative
+    # topic resolves to the absolute path /kinect2_1/qhd/image_color_rect.
+    #
+    # base_name_tf = ns  →  bridge appends "_link" internally, producing
+    # the TF root frame  kinect2_N_link, which our static publishers
+    # connect to the world frame.
+    #
+    _bridge_common = dict(
+        publish_tf=True,
+        fps_limit=30.0,
+        use_png=False,
+        depth_method="default",
+        reg_method="default",
+        max_depth=12.0,
+        min_depth=0.1,
+        queue_size=5,
+        bilateral_filter=True,
+        edge_aware_filter=True,
+        worker_threads=4,
     )
 
-    camera2_namespace_arg = DeclareLaunchArgument(
-        "camera2_namespace",
-        default_value="kinect2_2",
-        description="ROS namespace for the second Kinect v2",
-    )
+    # sensor is passed via ros_arguments with explicit YAML single-quote wrapping
+    # (e.g. sensor:='007425354147') so the ROS 2 parameter loader always treats
+    # the value as a string.  If passed through the parameters dict, launch_ros
+    # may serialise a numeric-looking serial to the temp YAML file without quotes,
+    # causing rcl_yaml_param_parser to infer a numeric type and throw
+    # InvalidParameterTypeException when the C++ node declares it as std::string.
+    nodes.append(Node(
+        package="kinect2_bridge",
+        executable="kinect2_bridge_node",
+        name=f"{ns1}_bridge",
+        output="screen",
+        ros_arguments=['-p', f"sensor:='{serial1}'"],
+        parameters=[{
+            **_bridge_common,
+            "base_name":    ns1,      # topics → /kinect2_1/hd/, /qhd/, /sd/
+            "base_name_tf": ns1,      # TF root = kinect2_1_link
+        }],
+    ))
 
-    publish_transforms_arg = DeclareLaunchArgument(
-        "publish_transforms",
-        default_value="true",
-        description="Publish static TF transforms between camera frames and world",
-    )
-
-    camera1_namespace  = LaunchConfiguration("camera1_namespace")
-    camera2_namespace  = LaunchConfiguration("camera2_namespace")
-    publish_transforms = LaunchConfiguration("publish_transforms")
-
-    # ------------------------------------------------------------------ #
-    #  Camera 1 — Kinect v2 Bridge                                        #
-    #                                                                      #
-    #  Serial is loaded from dual_kinect_serials.yaml.                    #
-    #  The YAML uses the ROS 2 parameter-file format:                     #
-    #    /kinect2_1/kinect2_bridge:                                        #
-    #      ros__parameters:                                                #
-    #        sensor: "001934470647"                                        #
-    #  ROS 2 matches the key against the node's fully-qualified name, so   #
-    #  passing the file to both nodes is safe — each picks only its entry. #
-    # ------------------------------------------------------------------ #
-    camera1_group = GroupAction([
-        PushRosNamespace(camera1_namespace),
-        Node(
+    # ── Delay second bridge by 5 s ────────────────────────────────── #
+    #
+    # libfreenect2 calls device->start() then device->stop() during
+    # initDevice() just to read camera parameters.  When both bridges
+    # race through that sequence simultaneously on the same USB bus one
+    # of them fails silently and the node shuts down without ever
+    # creating its publishers.  A 5-second gap is enough for the first
+    # device to finish its USB init/start/stop cycle before the second
+    # one begins.
+    #
+    # sensor is passed via ros_arguments (see bridge1 comment above).
+    #
+    nodes.append(TimerAction(
+        period=5.0,
+        actions=[Node(
             package="kinect2_bridge",
             executable="kinect2_bridge_node",
-            name="kinect2_bridge",
+            name=f"{ns2}_bridge",
             output="screen",
-            parameters=[
-                # Serial number resolved from YAML (kinect2_1 → 001934470647)
-                serials_yaml,
-                # Runtime parameters
-                {
-                    "base_name":           camera1_namespace,
-                    "publish_tf":          True,
-                    "base_name_tf":        camera1_namespace,
-                    "fps_limit":           30.0,
-                    "use_png":             False,
-                    "depth_method":        "default",
-                    "reg_method":          "default",
-                    "max_depth":           12.0,
-                    "min_depth":           0.1,
-                    "queue_size":          5,
-                    "bilateral_filter":    True,
-                    "edge_aware_filter":   True,
-                    "worker_threads":      4,
-                },
-            ],
-        ),
-        # Point cloud — SD resolution (512×424)
-        Node(
-            package="depth_image_proc",
-            executable="point_cloud_xyzrgb_node",
-            name="points_xyzrgb_sd",
-            remappings=[
-                ("rgb/camera_info",            "sd/camera_info"),
-                ("rgb/image_rect_color",        "sd/image_color_rect"),
-                ("depth_registered/image_rect", "sd/image_depth_rect"),
-                ("points",                      "sd/points"),
-            ],
-        ),
-        # Point cloud — QHD resolution (960×540)
-        Node(
-            package="depth_image_proc",
-            executable="point_cloud_xyzrgb_node",
-            name="points_xyzrgb_qhd",
-            remappings=[
-                ("rgb/camera_info",            "qhd/camera_info"),
-                ("rgb/image_rect_color",        "qhd/image_color_rect"),
-                ("depth_registered/image_rect", "qhd/image_depth_rect"),
-                ("points",                      "qhd/points"),
-            ],
-        ),
-    ])
+            ros_arguments=['-p', f"sensor:='{serial2}'"],
+            parameters=[{
+                **_bridge_common,
+                "base_name":    ns2,
+                "base_name_tf": ns2,
+            }],
+        )],
+    ))
 
-    # ------------------------------------------------------------------ #
-    #  Camera 2 — Kinect v2 Bridge                                        #
-    #  Serial resolved from YAML (kinect2_2 → 007425354147)              #
-    # ------------------------------------------------------------------ #
-    camera2_group = GroupAction([
-        PushRosNamespace(camera2_namespace),
-        Node(
-            package="kinect2_bridge",
-            executable="kinect2_bridge_node",
-            name="kinect2_bridge",
-            output="screen",
-            parameters=[
-                # Serial number resolved from YAML
-                serials_yaml,
-                {
-                    "base_name":           camera2_namespace,
-                    "publish_tf":          True,
-                    "base_name_tf":        camera2_namespace,
-                    "fps_limit":           30.0,
-                    "use_png":             False,
-                    "depth_method":        "default",
-                    "reg_method":          "default",
-                    "max_depth":           12.0,
-                    "min_depth":           0.1,
-                    "queue_size":          5,
-                    "bilateral_filter":    True,
-                    "edge_aware_filter":   True,
-                    "worker_threads":      4,
-                },
-            ],
-        ),
-        Node(
-            package="depth_image_proc",
-            executable="point_cloud_xyzrgb_node",
-            name="points_xyzrgb_sd",
-            remappings=[
-                ("rgb/camera_info",            "sd/camera_info"),
-                ("rgb/image_rect_color",        "sd/image_color_rect"),
-                ("depth_registered/image_rect", "sd/image_depth_rect"),
-                ("points",                      "sd/points"),
-            ],
-        ),
-        Node(
-            package="depth_image_proc",
-            executable="point_cloud_xyzrgb_node",
-            name="points_xyzrgb_qhd",
-            remappings=[
-                ("rgb/camera_info",            "qhd/camera_info"),
-                ("rgb/image_rect_color",        "qhd/image_color_rect"),
-                ("depth_registered/image_rect", "qhd/image_depth_rect"),
-                ("points",                      "qhd/points"),
-            ],
-        ),
-    ])
+    # ── Point cloud nodes ──────────────────────────────────────────── #
+    #
+    # Each depth_image_proc node is given an explicit namespace so its
+    # output topic resolves to  /<ns>/<res>/points.
+    #
+    # Input remappings use ABSOLUTE paths (leading /) to reach the
+    # bridge topics that live at the root namespace regardless of this
+    # node's own namespace.
+    #
+    # SD  resolution  512 × 424  — depth-registered colour + depth rect
+    # QHD resolution  960 × 540  — same at quarter-HD scale
+    #
+    for ns in (ns1, ns2):
+        for res in ("sd", "qhd"):
+            nodes.append(Node(
+                package="depth_image_proc",
+                executable="point_cloud_xyzrgb_node",
+                name=f"points_xyzrgb_{res}",
+                namespace=ns,
+                output="screen",
+                parameters=[{"queue_size": 10}],
+                remappings=[
+                    # Absolute → bridge's topic at /<ns>/<res>/...
+                    ("rgb/camera_info",             f"/{ns}/{res}/camera_info"),
+                    ("rgb/image_rect_color",         f"/{ns}/{res}/image_color_rect"),
+                    ("depth_registered/image_rect",  f"/{ns}/{res}/image_depth_rect"),
+                    # Relative output → /<ns>/<res>/points
+                    ("points",                       f"{res}/points"),
+                ],
+            ))
 
-    # ------------------------------------------------------------------ #
-    #  Static TF publishers — positions from camera_config.yaml           #
-    #                                                                      #
-    #  camera1: x=3.72 y=1.18 z=0.706 roll=0 pitch=0 yaw=0              #
-    #  camera2: x=3.72 y=1.18 z=0.706 roll=0 pitch=0 yaw=-0.5236        #
-    #                                                                      #
-    #  Both cameras publish transforms relative to the world_frame         #
-    #  defined in camera_config.yaml (default: "map").                    #
-    # ------------------------------------------------------------------ #
-    camera1_tf = Node(
-        package="tf2_ros",
-        executable="static_transform_publisher",
-        name="camera1_tf_publisher",
-        arguments=[
-            "--frame-id",    cam["world_frame"],
-            "--child-frame-id", cam["cam1_frame"],
-            "--x",     cam["cam1_x"],
-            "--y",     cam["cam1_y"],
-            "--z",     cam["cam1_z"],
-            "--roll",  cam["cam1_roll"],
-            "--pitch", cam["cam1_pitch"],
-            "--yaw",   cam["cam1_yaw"],
-        ],
-        condition=IfCondition(publish_transforms),
-    )
+    # ── Static TF publishers ───────────────────────────────────────── #
+    #
+    # Publishes:
+    #   map → kinect2_1_link   (positions from camera_config.yaml)
+    #   map → kinect2_2_link
+    #
+    # The bridge's publishStaticTF() then extends the tree:
+    #   kinect2_1_link → kinect2_1_rgb_optical_frame
+    #   kinect2_1_rgb_optical_frame → kinect2_1_ir_optical_frame
+    #
+    if do_tf:
+        nodes.append(Node(
+            package="tf2_ros",
+            executable="static_transform_publisher",
+            name="camera1_tf_publisher",
+            arguments=[
+                "--frame-id",       cam["world_frame"],
+                "--child-frame-id", cam["cam1_frame"],
+                "--x",              cam["cam1_x"],
+                "--y",              cam["cam1_y"],
+                "--z",              cam["cam1_z"],
+                "--roll",           cam["cam1_roll"],
+                "--pitch",          cam["cam1_pitch"],
+                "--yaw",            cam["cam1_yaw"],
+            ],
+        ))
 
-    camera2_tf = Node(
-        package="tf2_ros",
-        executable="static_transform_publisher",
-        name="camera2_tf_publisher",
-        arguments=[
-            "--frame-id",    cam["world_frame"],
-            "--child-frame-id", cam["cam2_frame"],
-            "--x",     cam["cam2_x"],
-            "--y",     cam["cam2_y"],
-            "--z",     cam["cam2_z"],
-            "--roll",  cam["cam2_roll"],
-            "--pitch", cam["cam2_pitch"],
-            "--yaw",   cam["cam2_yaw"],
-        ],
-        condition=IfCondition(publish_transforms),
-    )
+        nodes.append(Node(
+            package="tf2_ros",
+            executable="static_transform_publisher",
+            name="camera2_tf_publisher",
+            arguments=[
+                "--frame-id",       cam["world_frame"],
+                "--child-frame-id", cam["cam2_frame"],
+                "--x",              cam["cam2_x"],
+                "--y",              cam["cam2_y"],
+                "--z",              cam["cam2_z"],
+                "--roll",           cam["cam2_roll"],
+                "--pitch",          cam["cam2_pitch"],
+                "--yaw",            cam["cam2_yaw"],
+            ],
+        ))
 
-    # ------------------------------------------------------------------ #
-    #  Assemble launch description                                         #
-    # ------------------------------------------------------------------ #
+    return nodes
+
+
+# ─────────────────────────────────────────────────────────────────── #
+#  Entry point                                                          #
+# ─────────────────────────────────────────────────────────────────── #
+
+def generate_launch_description():
     return LaunchDescription([
-        camera1_namespace_arg,
-        camera2_namespace_arg,
-        publish_transforms_arg,
-        camera1_group,
-        camera2_group,
-        camera1_tf,
-        camera2_tf,
+        DeclareLaunchArgument(
+            "camera1_namespace",
+            default_value="kinect2_1",
+            description=(
+                "Namespace and base_name for the first Kinect v2. "
+                "Topics land at /<namespace>/hd/, /qhd/, /sd/. "
+                "Serial is looked up by this key in dual_kinect_serials.yaml."
+            ),
+        ),
+        DeclareLaunchArgument(
+            "camera2_namespace",
+            default_value="kinect2_2",
+            description=(
+                "Namespace and base_name for the second Kinect v2. "
+                "Topics land at /<namespace>/hd/, /qhd/, /sd/. "
+                "Serial is looked up by this key in dual_kinect_serials.yaml."
+            ),
+        ),
+        DeclareLaunchArgument(
+            "publish_transforms",
+            default_value="true",
+            description=(
+                "Publish static TF transforms from world_frame (map) to each "
+                "camera link frame. Positions are read from camera_config.yaml. "
+                "Set to 'false' if you provide transforms externally."
+            ),
+        ),
+        OpaqueFunction(function=launch_setup),
     ])

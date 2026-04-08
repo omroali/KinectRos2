@@ -52,7 +52,7 @@ source install/setup.bash
 
 **Single camera:**
 ```bash
-ros2 launch kinect2_bridge kinect2_single.launch.py serial:=<YOUR_SERIAL>
+ros2 launch kinect2_single.launch.py serial:=<YOUR_SERIAL>
 ```
 
 **Dual cameras:**
