@@ -1,4 +1,4 @@
-FROM osrf/ros:humble-desktop-full
+FROM osrf/ros:jazzy-desktop-full
 
 RUN apt-get update && apt-get install -y --no-install-recommends gnupg2 \
     && apt-key adv --keyserver keyserver.ubuntu.com --recv-keys F42ED6FBAB17C654
@@ -11,13 +11,17 @@ ARG  USERNAME=ros
 ARG  UID=1000
 ARG  GID=1000
 
+# Handle user creation - Ubuntu 24.04 may have existing user with UID/GID 1000
 RUN apt-get update && apt-get install -y sudo git usbutils \
-    && addgroup --gid ${GID} ${USERNAME} \
-    && adduser  --uid ${UID} --gid ${GID} --disabled-password --gecos "" ${USERNAME} \
+    && (deluser --remove-home ubuntu 2>/dev/null || true) \
+    && (delgroup ubuntu 2>/dev/null || true) \
+    && (getent group ${GID} || addgroup --gid ${GID} ${USERNAME}) \
+    && (getent passwd ${UID} || adduser --uid ${UID} --gid ${GID} --disabled-password --gecos "" ${USERNAME}) \
     && usermod -aG plugdev ${USERNAME} \
     && usermod -aG video ${USERNAME} \
     && echo "${USERNAME} ALL=(ALL) NOPASSWD:ALL" >> /etc/sudoers \
-    && addgroup dialout || true && usermod -a -G dialout ${USERNAME}
+    && (getent group dialout || addgroup dialout) \
+    && usermod -a -G dialout ${USERNAME}
 
 ENV BASE_WS=/home/${USERNAME}/base_ws
 RUN mkdir -p ${BASE_WS}/src \
@@ -34,7 +38,7 @@ RUN mkdir -p ${ROSBAG_DIR} \
 RUN apt-get update && \
     apt-get install -y --no-install-recommends \
     sudo git build-essential \
-    python3 python3-pip \
+    python3 python3-pip python3-venv \
     python3-colcon-common-extensions \
     python3-rosdep python3-rosdep-modules && \
     rm -rf /var/lib/apt/lists/*
@@ -46,12 +50,17 @@ RUN apt-get update && \
 
 RUN apt-get update && \
     apt-get install -y --no-install-recommends \
-    ros-humble-launch-testing \
-    ros-humble-tf-transformations \
-    ros-humble-launch-pytest \
-    ros-humble-ament-cmake-core \
+    ros-jazzy-launch-testing \
+    ros-jazzy-tf-transformations \
+    ros-jazzy-launch-pytest \
+    ros-jazzy-ament-cmake-core \
+    ros-jazzy-cv-bridge \
+    ros-jazzy-image-transport \
+    ros-jazzy-compressed-image-transport \
+    ros-jazzy-compressed-depth-image-transport \
+    ros-jazzy-message-filters \
     libasio-dev \
-    ros-humble-joy-linux \
+    ros-jazzy-joy-linux \
     && \
     rm -rf /var/lib/apt/lists/*
 
@@ -89,14 +98,13 @@ RUN mkdir build && cd build && \
 # Clean up build files
 RUN rm -rf /tmp/libfreenect2
 
-
-
-RUN python3 -m pip install --no-cache-dir --upgrade \
-    pip wheel \
-    setuptools==58.2.0 \
-    packaging==24.2 \
+# Install Python packages (using --break-system-packages for Ubuntu 24.04)
+RUN python3 -m pip install --no-cache-dir --break-system-packages \
     tmule==1.5.9 \
     pyserial
+    # setuptools \
+    # packaging \
+    # tmule \
 
 USER ${USERNAME}
 WORKDIR /home/${USERNAME}
