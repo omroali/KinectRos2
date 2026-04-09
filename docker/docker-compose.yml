@@ -3,42 +3,41 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
-    image: kinect2_container 
+    image: kinect2_container
 
     stdin_open: true
     tty: true
-    command: /bin/bash # default shell when you attach
-    network_mode: host # helps ROS 2 discovery
+    command: /bin/bash
+    network_mode: host
 
-    # Use privileged for full USB access (required for Kinect v2)
     privileged: true
-
-    volumes:
-      # USB devices - dynamic view
-      - /dev/bus/usb:/dev/bus/usb:rw
-      # udev for device hotplug detection
-      - /run/udev:/run/udev:ro
-      # udev rules (so container knows about permissions)
-      - /etc/udev/rules.d:/etc/udev/rules.d:ro
-
-      # Project source code
-      - ../kinect2_ros2:/home/ros/base_ws/src/kinect2_ros2:rw
-      - ../velodyne:/home/ros/base_ws/src/velodyne:rw
-      - ../bash_scripts/container:/home/ros/bash_scripts:rw
-      - ../config:/home/ros/config:rw
-
-      # X11 for GUI applications (rviz, etc.)
-      - /tmp/.X11-unix:/tmp/.X11-unix:rw
-      - $HOME/.Xauthority:/root/.Xauthority:rw
+    runtime: nvidia
 
     environment:
       - BASE_WS=/home/ros/base_ws
       - DISPLAY=${DISPLAY}
       - QT_X11_NO_MITSHM=1
-      # Suppress some Qt/GTK warnings
       - QT_LOGGING_RULES="*.debug=false"
+      - NVIDIA_VISIBLE_DEVICES=all
+      - NVIDIA_DRIVER_CAPABILITIES=all
 
-    # Add user to plugdev group for USB device access
+    volumes:
+      - /dev/bus/usb:/dev/bus/usb:rw
+      - /run/udev:/run/udev:ro
+      - /etc/udev/rules.d:/etc/udev/rules.d:ro
+      - ../kinect2_ros2:/home/ros/base_ws/src/kinect2_ros2:rw
+      - ../velodyne:/home/ros/base_ws/src/velodyne:rw
+      - ../bash_scripts/container:/home/ros/bash_scripts:rw
+      - ../config:/home/ros/config:rw
+      - /tmp/.X11-unix:/tmp/.X11-unix:rw
+      - $HOME/.Xauthority:/root/.Xauthority:rw
+      - apt-cache:/var/cache/apt/archives
+      - apt-lists:/var/lib/apt/lists
+
     group_add:
       - plugdev
       - video
+
+volumes:
+  apt-cache:
+  apt-lists:

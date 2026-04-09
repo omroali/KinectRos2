@@ -34,23 +34,22 @@ else
     echo "Host OS: Unknown. X11 forwarding might not work as expected."
 fi
 
-# --- Build the Docker Compose services ---
-echo "Building Docker Compose services..."
-docker compose -f "${COMPOSE_FILE}" build "${SERVICE_NAME}"
-if [ $? -ne 0 ]; then
-    echo "Docker Compose build failed! Aborting."
-    exit 1
+if [ "$1" == "--build" ] || ! docker images | grep -q "kinect2_container"; then
+    echo "Building Docker Compose services..."
+    docker compose -f "${COMPOSE_FILE}" build "${SERVICE_NAME}"
+    if [ $? -ne 0 ]; then
+        echo "Docker Compose build failed! Aborting."
+        exit 1
+    fi
+    echo "Docker Compose build successful."
+else
+    echo "Using existing image. Use './docker_start.sh --build' to rebuild."
 fi
-echo "Docker Compose build successful."
 
-# --- Check and Stop/Remove existing container ---
 echo "Running docker compose down to ensure a clean start..."
 docker compose -f "${COMPOSE_FILE}" down --remove-orphans > /dev/null 2>&1 || true
-echo "Docker Compose cleanup completed."
 
-# --- Run the Docker Compose service interactively ---
-echo "Starting Docker Compose service '${SERVICE_NAME}' in interactive mode..."
-
+echo "Starting Docker Compose service '${SERVICE_NAME}'..."
 docker compose -f "${COMPOSE_FILE}" run --rm "${SERVICE_NAME}" bash
 
 echo "Docker container session ended."
