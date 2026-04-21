@@ -70,25 +70,36 @@ RUN apt-get update && \
     libturbojpeg0-dev \
     libusb-1.0-0-dev \
     libomp-dev \
-    libpcap-dev \ 
+    libpcap-dev \
     cmake \
     pkg-config \
     freeglut3-dev \
+    libglfw3-dev \
     libxmu-dev \
-    libxi-dev && \
+    libxi-dev \
+    ocl-icd-opencl-dev \
+    opencl-headers \
+    ocl-icd-libopencl1 \
+    clinfo && \
     rm -rf /var/lib/apt/lists/*
 
 # Install libfreenect2 for Kinect v2 support
 RUN git clone https://github.com/OpenKinect/libfreenect2.git /tmp/libfreenect2
 WORKDIR /tmp/libfreenect2
+
+# Patch: OpenCL 3.0 headers define CL_ICDL_VERSION as a macro, which collides
+# with a local variable of the same name in opencl_depth_packet_processor.cpp.
+# Rename the local variable to avoid the preprocessor conflict.
+RUN grep -rl 'CL_ICDL_VERSION' src/ | xargs sed -i 's/CL_ICDL_VERSION/FREENECT2_CL_ICDL_VERSION/g'
+
 RUN mkdir build && cd build && \
     cmake .. \
     -DCMAKE_INSTALL_PREFIX=/usr \
     -DENABLE_CXX11=ON \
     -DBUILD_OPENNI2_DRIVER=OFF \
-    -DENABLE_OPENCL=OFF \
+    -DENABLE_OPENCL=ON \
     -DENABLE_CUDA=OFF \
-    -DENABLE_OPENGL=OFF \
+    -DENABLE_OPENGL=ON \
     -DENABLE_VAAPI=OFF \
     -DENABLE_TEGRAJPEG=OFF && \
     make && \

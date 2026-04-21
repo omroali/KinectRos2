@@ -17,20 +17,29 @@ services:
       - BASE_WS=/home/ros/base_ws
       - DISPLAY=${DISPLAY}
       - QT_X11_NO_MITSHM=1
-      - QT_LOGGING_RULES="*.debug=false"
       - NVIDIA_VISIBLE_DEVICES=all
       - NVIDIA_DRIVER_CAPABILITIES=all
+      # - NVIDIA_DRIVER_CAPABILITIES=compute,utility,display,graphics
 
     volumes:
+      # IO devices for Kinect and Velodyne
       - /dev/bus/usb:/dev/bus/usb:rw
       - /run/udev:/run/udev:ro
       - /etc/udev/rules.d:/etc/udev/rules.d:ro
+
+      # Packages 
       - ../kinect2_ros2:/home/ros/base_ws/src/kinect2_ros2:rw
       - ../velodyne:/home/ros/base_ws/src/velodyne:rw
+
+      # Configs and scripts
       - ../bash_scripts/container:/home/ros/bash_scripts:rw
       - ../config:/home/ros/config:rw
+
+        # enable mount for gui applications
       - /tmp/.X11-unix:/tmp/.X11-unix:rw
       - $HOME/.Xauthority:/root/.Xauthority:rw
+
+      # apt cache to speed up re-builds
       - apt-cache:/var/cache/apt/archives
       - apt-lists:/var/lib/apt/lists
 
