@@ -37,7 +37,7 @@ services:
 
         # enable mount for gui applications
       - /tmp/.X11-unix:/tmp/.X11-unix:rw
-      - $HOME/.Xauthority:/root/.Xauthority:rw
+      - $HOME/.Xauthority:/home/ros/.Xauthority:ro
 
       # apt cache to speed up re-builds
       - apt-cache:/var/cache/apt/archives

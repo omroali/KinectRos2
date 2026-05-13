@@ -67,6 +67,63 @@ ros2 launch kinect2_bridge kinect2_dual_dynamic.launch.py \
 rviz2 -d ~/config/kinectrviz.rviz
 ```
 
+## Vicon Auto-Alignment (On Demand)
+
+This workflow is intentionally separate from the main launch flow.
+
+1. Run normal Kinect launch as usual.
+2. Start Vicon calibration node only when needed.
+3. Save calibrated poses to config.
+4. Stop calibration node and keep running with static TF.
+
+### Start calibration node
+
+Use an absolute config path so saved values are written to your source file.
+
+```bash
+ros2 run kinect2_bridge vicon_marker_calibration_tf.py --ros-args \
+    -p config_path:=/home/ros/base_ws/src/kinect2_ros2/kinect2_bridge/config/multi_camera_config.yaml
+```
+
+or for adjustable params
+```bash
+ros2 run kinect2_bridge vicon_marker_calibration_tf.py --ros-args \
+  -p config_path:=/home/ros/base_ws/src/kinect2_ros2/kinect2_bridge/config/multi_camera_config.yaml \
+  -p translation_alpha:=0.1 \
+  -p rotation_alpha:=0.05 \
+  -p translation_deadband_m:=0.004 \
+  -p rotation_deadband_deg:=1.2
+```
+
+### Save calibrated camera poses
+
+```bash
+ros2 service call /save_calibration std_srvs/srv/Trigger "{}"
+```
+
+The save operation is global and fresh-only.
+If markers for a camera are stale, that camera is skipped.
+
+### Why jitter happens when cameras are stationary
+
+Small jitter is expected due to Vicon measurement noise and tiny marker centroid variation.
+To reduce this, the calibration node applies deadbands before updating TF:
+
+- translation_deadband_m (default 0.002 m = 2 mm)
+- rotation_deadband_deg (default 0.2 deg)
+
+### Tune deadbands (optional)
+
+```bash
+ros2 run kinect2_bridge vicon_marker_calibration_tf.py --ros-args \
+    -p config_path:=/home/ros/base_ws/src/kinect2_ros2/kinect2_bridge/config/multi_camera_config.yaml \
+    -p translation_deadband_m:=0.002 \
+    -p rotation_deadband_deg:=0.2
+```
+
+If you still see jitter, increase deadbands slightly.
+If updates feel too sticky, reduce deadbands.
+
 ## Project Structure
 
 ```

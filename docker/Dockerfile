@@ -59,6 +59,9 @@ RUN apt-get update && \
     ros-jazzy-compressed-image-transport \
     ros-jazzy-compressed-depth-image-transport \
     ros-jazzy-message-filters \
+    ros-jazzy-pcl-ros \
+    ros-jazzy-rosbag2-storage-mcap \
+    ros-jazzy-mcap-vendor \
     libasio-dev \
     ros-jazzy-joy-linux \
     && \
