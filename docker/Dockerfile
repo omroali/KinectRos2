@@ -41,7 +41,8 @@ RUN apt-get update && \
 
 RUN apt-get update && \
     apt-get install -y --no-install-recommends \
-    vim nano htop tmux net-tools tree && \
+    vim nano htop tmux net-tools tree ffmpeg \
+    gstreamer1.0-tools gstreamer1.0-plugins-base gstreamer1.0-plugins-good gstreamer1.0-libav && \
     rm -rf /var/lib/apt/lists/*
 
 RUN apt-get update && \
@@ -50,6 +51,7 @@ RUN apt-get update && \
     ros-humble-tf-transformations \
     ros-humble-launch-pytest \
     ros-humble-ament-cmake-core \
+    ros-humble-rosbag2-storage-mcap \
     libasio-dev \
     ros-humble-joy-linux \
     && \
@@ -69,9 +71,6 @@ WORKDIR /libfreenect2/build
 RUN cmake .. -DENABLE_CXX11=ON -DBUILD_OPENNI2_DRIVER=OFF -DENABLE_OPENCL=OFF -DENABLE_CUDA=OFF -DENABLE_OPENGL=OFF -DENABLE_VAAPI=OFF -DENABLE_TEGRAJPEG=OFF -DCMAKE_INSTALL_PREFIX=/usr
 RUN make
 RUN make install
-
-# WORKDIR ${BASE_WS}/src
-# RUN git clone https://github.com/krepa098/kinect2_ros2.git
 
 RUN python3 -m pip install --no-cache-dir --upgrade \
     pip wheel \
