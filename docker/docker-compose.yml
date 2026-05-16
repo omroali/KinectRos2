@@ -1,9 +1,9 @@
 services:
-  ros2_humble:
+  kinect-ros:
     build:
       context: .
       dockerfile: Dockerfile
-    image: ros2-humble # resulting image name
+    image: kinect-ros # resulting image name
 
     stdin_open: true
     tty: true

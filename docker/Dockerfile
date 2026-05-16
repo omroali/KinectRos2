@@ -1,4 +1,4 @@
-FROM osrf/ros:humble-desktop-full
+FROM osrf/ros:jazzy-desktop-full
 
 RUN apt-get update && apt-get install -y --no-install-recommends gnupg2 \
     && apt-key adv --keyserver keyserver.ubuntu.com --recv-keys F42ED6FBAB17C654
@@ -8,8 +8,8 @@ RUN echo "deb http://packages.ros.org/ros2-testing/ubuntu $(lsb_release -cs) mai
 
 ARG  DEBIAN_FRONTEND=noninteractive
 ARG  USERNAME=ros
-ARG  UID=1000
-ARG  GID=1000
+ARG  UID=1001
+ARG  GID=1001
 
 RUN apt-get update && apt-get install -y sudo git usbutils \
     && addgroup --gid ${GID} ${USERNAME} \
@@ -47,13 +47,13 @@ RUN apt-get update && \
 
 RUN apt-get update && \
     apt-get install -y --no-install-recommends \
-    ros-humble-launch-testing \
-    ros-humble-tf-transformations \
-    ros-humble-launch-pytest \
-    ros-humble-ament-cmake-core \
-    ros-humble-rosbag2-storage-mcap \
+    ros-jazzy-launch-testing \
+    ros-jazzy-tf-transformations \
+    ros-jazzy-launch-pytest \
+    ros-jazzy-ament-cmake-core \
+    ros-jazzy-rosbag2-storage-mcap \
     libasio-dev \
-    ros-humble-joy-linux \
+    ros-jazzy-joy-linux \
     && \
     rm -rf /var/lib/apt/lists/*
 
@@ -72,10 +72,7 @@ RUN cmake .. -DENABLE_CXX11=ON -DBUILD_OPENNI2_DRIVER=OFF -DENABLE_OPENCL=OFF -D
 RUN make
 RUN make install
 
-RUN python3 -m pip install --no-cache-dir --upgrade \
-    pip wheel \
-    setuptools==58.2.0 \
-    packaging==24.2 \
+RUN python3 -m pip install --no-cache-dir --break-system-packages \
     tmule==1.5.9 \
     pyserial
 
