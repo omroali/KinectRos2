@@ -34,14 +34,11 @@ else
     echo "Host OS: Unknown. X11 forwarding might not work as expected."
 fi
 
-# --- Build the Docker Compose services ---
-echo "Building Docker Compose services..."
-docker compose -f "${COMPOSE_FILE}" build "${SERVICE_NAME}"
-if [ $? -ne 0 ]; then
-    echo "Docker Compose build failed! Aborting."
-    exit 1
-fi
-echo "Docker Compose build successful."
+# --- Build the Docker Compose services if necessary ---
+echo "Ensuring Docker image is up to date..."
+# The 'run' command will use the cached image if available and valid.
+# A build is only triggered if the image doesn't exist.
+# No explicit 'build' command is needed for this workflow.
 
 # --- Check and Stop/Remove existing container ---
 echo "Running docker compose down to ensure a clean start..."

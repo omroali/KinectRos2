@@ -36,12 +36,14 @@ fi
 # These are already sourced in .bashrc, but explicit sourcing ensures it's fresh
 # and visible in the current shell, especially after a build.
 echo "Sourcing ROS 2 base environment..."
-source /opt/ros/humble/setup.bash
+source /opt/ros/jazzy/setup.bash
 
 echo "Sourcing workspace environment..."
 source ${BASE_WS}/install/setup.bash
 
 echo "ROS 2 workspace setup and sourced. Happy robot wrangling!"
+
+alias launch_kinect="ros2 launch kinect2_bridge multi_kinect.launch.py"
 
 # Mark that the setup has been run in this shell session
 export _ROS_WORKSPACE_SETUP_RUN=true

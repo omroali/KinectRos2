@@ -7,17 +7,15 @@ RUN echo "deb http://packages.ros.org/ros2-testing/ubuntu $(lsb_release -cs) mai
     | tee /etc/apt/sources.list.d/ros2-testing.list
 
 ARG  DEBIAN_FRONTEND=noninteractive
-ARG  USERNAME=ros
-ARG  UID=1001
-ARG  GID=1001
+ARG  USERNAME=ubuntu
 
 RUN apt-get update && apt-get install -y sudo git usbutils \
-    && addgroup --gid ${GID} ${USERNAME} \
-    && adduser  --uid ${UID} --gid ${GID} --disabled-password --gecos "" ${USERNAME} \
+    && usermod -aG sudo ${USERNAME} \
     && usermod -aG plugdev ${USERNAME} \
     && usermod -aG video ${USERNAME} \
     && echo "${USERNAME} ALL=(ALL) NOPASSWD:ALL" >> /etc/sudoers \
     && addgroup dialout || true && usermod -a -G dialout ${USERNAME}
+
 
 ENV BASE_WS=/home/${USERNAME}/base_ws
 RUN mkdir -p ${BASE_WS}/src \
@@ -34,10 +32,21 @@ RUN mkdir -p ${ROSBAG_DIR} \
 RUN apt-get update && \
     apt-get install -y --no-install-recommends \
     sudo git build-essential \
+    gcc-12 g++-12 \
     python3 python3-pip \
     python3-colcon-common-extensions \
     python3-rosdep python3-rosdep-modules && \
     rm -rf /var/lib/apt/lists/*
+
+ENV CC=/usr/bin/gcc-12
+ENV CXX=/usr/bin/g++-12
+
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends \
+    nvidia-cuda-toolkit && \
+    rm -rf /var/lib/apt/lists/*
+
+COPY helper_math.h /usr/local/include/helper_math.h
 
 RUN apt-get update && \
     apt-get install -y --no-install-recommends \
@@ -68,7 +77,7 @@ RUN apt-get update && \
 
 RUN git clone https://github.com/OpenKinect/libfreenect2.git
 WORKDIR /libfreenect2/build
-RUN cmake .. -DENABLE_CXX11=ON -DBUILD_OPENNI2_DRIVER=OFF -DENABLE_OPENCL=OFF -DENABLE_CUDA=OFF -DENABLE_OPENGL=OFF -DENABLE_VAAPI=OFF -DENABLE_TEGRAJPEG=OFF -DCMAKE_INSTALL_PREFIX=/usr
+RUN cmake .. -DENABLE_CXX11=ON -DBUILD_OPENNI2_DRIVER=OFF -DENABLE_OPENCL=OFF -DENABLE_CUDA=ON -DENABLE_OPENGL=OFF -DENABLE_VAAPI=OFF -DENABLE_TEGRAJPEG=OFF -DCMAKE_INSTALL_PREFIX=/usr
 RUN make
 RUN make install
 

@@ -11,20 +11,23 @@ services:
     network_mode: host # helps ROS 2 discovery (optional)
 
     privileged: true
+    gpus: all
     devices:
       - /dev:/dev
       - /dev/bus/usb:/dev/bus/usb
 
     volumes:
-      - ../kinect2_ros2:/home/ros/base_ws/src/kinect2_ros2:rw
-      # - ../openni2_camera:/home/ros/base_ws/src/openni2_camera:rw
-      - ../bash_scripts/container:/home/ros/bash_scripts:rw
+      - ../kinect2_ros2:/home/ubuntu/base_ws/src/kinect2_ros2:rw
+      # - ../openni2_camera:/home/ubuntu/base_ws/src/openni2_camera:rw
+      - ../bash_scripts/container:/home/ubuntu/bash_scripts:rw
       - /tmp/.X11-unix:/tmp/.X11-unix:rw
-      - ${HOME}/.Xauthority:/home/ros/.Xauthority:ro
-      - ../data:/home/ros/data:rw
+      - ${HOME}/.Xauthority:/home/ubuntu/.Xauthority:ro
+      - ../data:/home/ubuntu/data:rw
 
     environment:
-      - BASE_WS=/home/ros/base_ws
+      - BASE_WS=/home/ubuntu/base_ws
       - DISPLAY=${DISPLAY:-:0}
-      - XAUTHORITY=/home/ros/.Xauthority
+      - XAUTHORITY=/home/ubuntu/.Xauthority
       - QT_X11_NO_MITSHM=1
+      - NVIDIA_VISIBLE_DEVICES=all
+      - NVIDIA_DRIVER_CAPABILITIES=compute,utility,graphics
