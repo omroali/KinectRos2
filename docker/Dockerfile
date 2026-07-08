@@ -73,6 +73,8 @@ RUN apt-get update && \
     ros-jazzy-cv-bridge \
     ros-jazzy-nav-msgs \
     ros-jazzy-tf2-ros \
+    ros-jazzy-realsense2-camera \
+    ros-jazzy-realsense2-camera-msgs \
     && \
     rm -rf /var/lib/apt/lists/*
 
@@ -108,10 +110,6 @@ RUN make install
 RUN python3 -m pip install --no-cache-dir --break-system-packages \
     tmule==1.5.9 \
     pyserial
-
-RUN git clone https://github.com/IntelRealSense/realsense-ros.git -b ros2-development \
-    ${BASE_WS}/src/realsense-ros \
-    && chown -R ${USERNAME}:${USERNAME} ${BASE_WS}/src/realsense-ros
 
 RUN mkdir -p /home/${USERNAME} && echo '{"context":{"dds":{"domain":0,"enabled":true}}}' \
     > /home/${USERNAME}/.realsense-config.json \

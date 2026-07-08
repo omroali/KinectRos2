@@ -1,8 +1,16 @@
 #!/usr/bin/env python3
-"""Multi-camera RealSense launch — reads realsense_config.yaml, spawns
-camera nodes + TF transforms per enabled camera.
+"""Multi-camera RealSense launch — reads realsense_cameras.yaml, spawns
+camera nodes per enabled camera.
 
-Pattern follows kinect2_bridge/multi_kinect.launch.py.
+Supports two driver modes per camera entry:
+  driver: usb  — launches realsense2_camera_node (standard ROS2 driver)
+  driver: dds  — PoE / network-attached camera (uses topic_relay)
+
+Topics follow the standard realsense2_camera convention:
+  /realsense/D555_<serial>/color/image_raw
+  /realsense/D555_<serial>/depth/image_rect_raw
+  /realsense/D555_<serial>/infra1/image_rect_raw
+  /realsense/D555_<serial>/infra2/image_rect_raw
 """
 
 import os
@@ -57,52 +65,82 @@ def _launch_setup(context, *args, **kwargs):
             actions.append(LogInfo(msg=f"Skipping {cam_name}: no serial"))
             continue
 
-        prefix = f"/realsense/D555_{serial}"
+        driver = cam_cfg.get("driver", "dds")
+        if driver == "usb":
+            # ── USB camera: launch realsense2_camera_node ──────────────
+            # Standard topic convention — no remapping needed.
+            # TF frames are published by the node itself (publish_tf:=true).
+            node = Node(
+                package="realsense2_camera",
+                executable="realsense2_camera_node",
+                name=f"{cam_name}_camera",
+                output="screen",
+                parameters=[
+                    {
+                        "serial_no": serial,
+                        "camera_name": f"D555_{serial}",
+                        "camera_namespace": "realsense",
+                        "base_frame_id": frame,
+                        "publish_tf": True,
+                        "enable_color": True,
+                        "enable_depth": True,
+                        "enable_infra1": True,
+                        "enable_infra2": True,
+                        "enable_gyro": False,
+                        "enable_accel": False,
+                        "enable_sync": False,
+                        "align_depth.enable": False,
+                        "pointcloud.enable": False,
+                        "initial_reset": False,
+                    }
+                ],
+            )
+            if delay > 0:
+                actions.append(TimerAction(period=delay, actions=[node]))
+            else:
+                actions.append(node)
+            delay += delay_step
 
-        # Camera node
-        node = Node(
-            package="realsense2_camera",
-            executable="realsense2_camera_node",
-            name=f"{cam_name}_camera",
-            output="screen",
-            parameters=[
-                {
-                    "serial_no": serial,
-                    "camera_name": namespace,
-                    "camera_namespace": "realsense",
-                    "enable_color": True,
-                    "enable_depth": True,
-                    "enable_infra1": False,
-                    "enable_infra2": False,
-                    "enable_gyro": False,
-                    "enable_accel": False,
-                    "enable_motion": False,
-                    "enable_sync": False,
-                    "align_depth.enable": False,
-                    "rgb_camera.color_profile": "896x504x30",
-                    "depth_module.depth_profile": "896x504x30",
-                    "depth_module.infra_profile": "896x504x30",
-                    "pointcloud.enable": False,
-                    "initial_reset": False,
-                }
-            ],
-            remappings=[
-                ("color/image_raw", f"{prefix}_Color"),
-                ("color/camera_info", f"{prefix}_Color/camera_info"),
-                ("color/metadata", f"{prefix}_Color/metadata"),
-                ("depth/image_rect_raw", f"{prefix}_Depth"),
-                ("depth/camera_info", f"{prefix}_Depth/camera_info"),
-                ("depth/metadata", f"{prefix}_Depth/metadata"),
-            ],
+            # TF: map → camera_link (published here so it survives
+            # even if realsense2_camera is restarted)
+            pos = cam_cfg.get("position", {}) or {}
+            ori = cam_cfg.get("orientation", {}) or {}
+            actions.append(
+                Node(
+                    package="tf2_ros",
+                    executable="static_transform_publisher",
+                    name=f"{cam_name}_map_tf",
+                    output="screen",
+                    arguments=[
+                        "--frame-id",
+                        world_frame,
+                        "--child-frame-id",
+                        frame,
+                        "--x",
+                        str(pos.get("x", 0)),
+                        "--y",
+                        str(pos.get("y", 0)),
+                        "--z",
+                        str(pos.get("z", 0)),
+                        "--roll",
+                        str(ori.get("roll", 0)),
+                        "--pitch",
+                        str(ori.get("pitch", 0)),
+                        "--yaw",
+                        str(ori.get("yaw", 0)),
+                    ],
+                )
+            )
+            continue
+
+        # ── DDS / PoE camera: relay + TF (existing behaviour) ──────────
+        # Topics are remapped from the camera's flat internal convention
+        # to the standard hierarchical convention so downstream consumers
+        # (recorder, TF) see identical topic names regardless of transport.
+        actions.append(
+            LogInfo(msg=f"{cam_name}: driver=dds — use realsense_poe_relay.launch.py")
         )
-
-        if delay > 0:
-            actions.append(TimerAction(period=delay, actions=[node]))
-        else:
-            actions.append(node)
-        delay += delay_step
-
-        # TF: map → camera_link
+        # Publish static TF even for DDS cameras
         pos = cam_cfg.get("position", {}) or {}
         ori = cam_cfg.get("orientation", {}) or {}
         actions.append(
