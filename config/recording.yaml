@@ -1,0 +1,65 @@
+# Unified recording settings — read by BOTH the Kinect and RealSense
+# recording managers. Each manager only uses the keys relevant to it.
+#
+# This file lives in the repo-level config/ directory, mounted into the
+# container at $SENSOR_CONFIG_DIR (/home/ubuntu/config). Edit here; no
+# rebuild needed, just restart the recording service.
+
+recording_settings:
+  output_root: "/home/ubuntu/data"
+  uuid: "0000"
+
+  # ───────────────────────── Video (colour/IR streams) ─────────────────────
+  # Encoder: libx265 (CPU), hevc_nvenc (Nvidia GPU), hevc_qsv (Intel),
+  # hevc_amf (AMD).
+  video_encoder: "hevc_nvenc"
+
+  # H.265 CRF, 0-51. Lower = better quality / larger files.
+  #   18 visually lossless · 22 high · 28 good · 35 low
+  video_crf: 18
+
+  # Frame rate written to the .mp4 container; match the sensor rate.
+  video_fps: 30.0
+
+  # ───────────────────────── Rosbag (depth/metadata) ───────────────────────
+  # Storage format: mcap (recommended) or sqlite3.
+  bag_storage: "mcap"
+
+  # Bag-level zstd compression:
+  #   none    - off
+  #   file    - outer .mcap.zstd wrapper: best ratio, but the whole file must
+  #             be decompressed sequentially for ANY read (no index seeking)
+  #   message - chunk-level zstd inside a regular .mcap: index still works
+  #             for time-range/topic queries. Use for analysis workflows.
+  # Kinect depth frames arrive already PNG-compressed (use_png in the
+  # bridge), so zstd mainly helps camera_info/tf and raw topics.
+  bag_compression: "message"
+
+  # In-memory cache per bag recorder (MB). Buffers against disk latency
+  # spikes; raise for slow drives, lower if RAM is tight. (Kinect manager)
+  bag_cache_size_mb: 128
+
+  # ───────────────────────── RealSense per-stream settings ─────────────────
+  # Applied to every RealSense camera with record: true.
+  #   enabled : record this stream
+  #   mode    : "compressed" subscribes to the camera's JPEG topic (low
+  #             bandwidth, lossy on top of camera compression); "raw"
+  #             subscribes to the uncompressed topic and re-encodes locally.
+  #             Only "color" supports compressed mode.
+  #   fps     : target recording rate; recorder subsamples on ROS timestamps.
+  streams:
+    color:
+      enabled: true
+      # raw ~46 MB/s vs compressed ~5 MB/s per camera over the network
+      mode: "compressed"
+      fps: 30
+    infrared_1:
+      enabled: true
+      mode: "raw"
+      fps: 15
+    infrared_2:
+      enabled: true
+      mode: "raw"
+      fps: 15
+    depth:
+      enabled: true
