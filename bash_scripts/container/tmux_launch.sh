@@ -33,5 +33,8 @@ launch_window "calib" "ros2 run kinect2_bridge vicon_marker_calibration_tf.py"
 # Velodyne (device IP + pose come from $SENSOR_CONFIG_DIR/velodyne.yaml)
 launch_window "velodyne" "ros2 launch velodyne velodyne_with_tf.launch.py"
 
+# Unified recording manager (service-driven — use 'start'/'stop' aliases to control)
+launch_window "record" "ros2 launch sensor_recorder unified_recording.launch.py"
+
 tmux select-window -t "$SESSION:0"
 tmux attach -t "$SESSION"

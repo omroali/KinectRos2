@@ -34,6 +34,7 @@ services:
       - ../realsense_ros2:/home/ubuntu/base_ws/src/realsense_ros2:rw
       - ../vicon_ros/:/home/ubuntu/base_ws/src/vicon_ros:rw
       - ../velodyne_ros:/home/ubuntu/base_ws/src/velodyne_ros:rw
+      - ../sensor_recorder:/home/ubuntu/base_ws/src/sensor_recorder:rw
 
       # Helper scripts
       - ../bash_scripts/container:/home/ubuntu/bash_scripts:rw

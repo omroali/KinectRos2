@@ -63,3 +63,17 @@ recording_settings:
       fps: 15
     depth:
       enabled: true
+
+  # ───────────────────────── Vicon ────────────────────────────────────────
+  vicon:
+    # Whether to record Vicon topics (segments, labeled markers, unlabeled
+    # markers). All topics matching topic_regex are added to the bag.
+    enabled: true
+    topic_regex: "/vicon/.*"
+
+  # ───────────────────────── Velodyne ─────────────────────────────────────
+  velodyne:
+    # LiDAR topics recorded in the bag when the Velodyne entry in
+    # velodyne.yaml has record: true.
+    topics:
+      - "/velodyne_points"

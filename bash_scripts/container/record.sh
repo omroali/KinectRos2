@@ -1,71 +1,58 @@
 #!/bin/bash
-# Wrapper script to launch ROS recording and display a live dashboard.
+# Thin client for the unified recording service: starts a recording, shows a
+# live dashboard, and stops the recording on Ctrl+C.
+#
+# Requires the recording service node to be running already:
+#   ros2 launch sensor_recorder unified_recording.launch.py
+# (tmux_launch.sh opens it in the "record" window; alias: record_service)
 
-# --- Configuration ---
-# These paths are inside the container and should match recording_config.yaml
-OUTPUT_ROOT="/home/ubuntu/data"
-UUID="0000"
-SESSION_BASE_DIR="${OUTPUT_ROOT}/${UUID}"
+STOPPED=0
 
-ROS_PID=0
-
-# --- Functions ---
-cleanup() {
+stop_recording() {
+    [ "$STOPPED" -ne 0 ] && return
+    STOPPED=1
     echo ""
-    echo "Stopping recording process..."
-    if [ $ROS_PID -ne 0 ]; then
-        # Send SIGINT (Ctrl+C) to the process group to shut down ros2 launch gracefully
-        kill -SIGINT -$ROS_PID
-        wait $ROS_PID 2>/dev/null
+    echo "Stopping recording..."
+    ros2 service call /stop_recording std_srvs/srv/Trigger > /dev/null 2>&1
+    echo "Recording stopped: ${SESSION_DIR:-<unknown>}"
+    if [ -n "$SESSION_DIR" ] && [ -d "$SESSION_DIR" ]; then
+        echo "Final contents:"
+        find "$SESSION_DIR" -type f -exec du -h {} + 2>/dev/null | sort -hr | head -20
     fi
-    
-    echo "Final Summary:"
-    # The final summary logic from the previous script is implicitly handled by the loop's last run
-    # and the shell's natural exit. We can add a more explicit final print if needed.
     exit 0
 }
 
-# --- Main ---
-# Trap Ctrl+C (SIGINT) and call the cleanup function
-trap cleanup SIGINT
+trap stop_recording SIGINT SIGTERM
 
-# Launch the ROS recording node in the background
-echo "Starting recording in the background... Monitoring will begin shortly."
-# Use setsid to create a new session, so we can kill the whole process group
-setsid ros2 launch kinect2_bridge kinect_recording.launch.py > /dev/null 2>&1 &
-ROS_PID=$!
-
-# Wait for the session directory to be created
-echo "Waiting for session directory to be created..."
-SESSION_DIR=""
-for i in {1..15}; do
-    # Find the most recently modified session directory
-    LATEST_DIR=$(find "${SESSION_BASE_DIR}" -mindepth 1 -maxdepth 1 -type d -printf '%T@ %p\n' 2>/dev/null | sort -n | tail -1 | cut -d' ' -f2-)
-    if [ -n "$LATEST_DIR" ]; then
-        SESSION_DIR=$LATEST_DIR
-        break
-    fi
-    sleep 1
-done
-
-if [ -z "$SESSION_DIR" ]; then
-    echo "Error: Could not find session directory after 15 seconds. Aborting."
-    cleanup
+# --- Check the service is up ------------------------------------------------
+if ! timeout 5 ros2 service type /start_recording > /dev/null 2>&1; then
+    echo "Error: /start_recording service not found."
+    echo "Start the recording service first:"
+    echo "  ros2 launch sensor_recorder unified_recording.launch.py   (alias: record_service)"
     exit 1
 fi
 
+# --- Start recording ----------------------------------------------------------
+echo "Calling /start_recording..."
+RESPONSE=$(ros2 service call /start_recording std_srvs/srv/Trigger 2>&1)
+
+if ! echo "$RESPONSE" | grep -q "success=True"; then
+    echo "Error: recording did not start."
+    echo "$RESPONSE" | grep -o "message='[^']*'" || echo "$RESPONSE" | tail -3
+    exit 1
+fi
+
+# The service response message ends with the session directory path.
+SESSION_DIR=$(echo "$RESPONSE" | grep -o "message='[^']*'" | sed "s/message='Recording started in //; s/'$//")
 START_TIME=$(date +%s)
 
-# Start the monitoring loop
+# --- Dashboard ----------------------------------------------------------------
 while true; do
-    # Clear the terminal
     tput clear
 
-    # Calculate duration
     CURRENT_TIME=$(date +%s)
     DURATION=$((CURRENT_TIME - START_TIME))
-    
-    # Header
+
     echo "╔═════════════════════════════════════════════════════════════╗"
     echo "║            🔴 REC [Live Recording Dashboard] 🔴             ║"
     echo "║           Press Ctrl+C to stop and save session             ║"
@@ -73,13 +60,12 @@ while true; do
     printf "║ %-15s | %-40s ║\n" "Session Dir" "$(basename "$SESSION_DIR")"
     printf "║ %-15s | %-40s ║\n" "Duration"    "${DURATION} seconds"
     echo "╠═════════════════════ File Details ══════════════════════════╣"
-    
-    # File details
+
     (
       echo "║ SIZE     | FILE"
       echo "║----------|-------------------------------------------------- "
       find "$SESSION_DIR" -type f -exec du -h {} + 2>/dev/null | sort -hr | awk '{size=$1; $1=""; file=$0; printf "║ %-8s | %s\n", size, file}'
-    ) | head -n 15 # Limit to 15 lines to prevent overflow
+    ) | head -n 15
 
     echo "╚═════════════════════════════════════════════════════════════╝"
 

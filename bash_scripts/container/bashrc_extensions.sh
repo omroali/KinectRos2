@@ -68,16 +68,15 @@ source ${BASE_WS}/install/setup.bash
 echo "ROS 2 workspace setup and sourced. Happy robot wrangling!"
 
 alias launch_kinect="ros2 launch kinect2_bridge multi_kinect.launch.py"
-alias record_service_kinect="ros2 launch kinect2_bridge kinect_recording_service.launch.py"
-alias record_service_realsense="ros2 launch realsense_recorder realsense_recording_service.launch.py"
-alias realsense_cameras="ros2 launch realsense_tf_broadcaster realsense_multi_camera.launch.py"
+alias launch_recording="ros2 launch sensor_recorder unified_recording.launch.py"
+alias launch_realsense="ros2 launch realsense_tf_broadcaster realsense_multi_camera.launch.py"
 
 # vicon
-alias vicon_node="ros2 launch vicon_receiver all.launch.py"
-alias kinect_vicon_calibrate="ros2 run kinect2_bridge vicon_marker_calibration_tf.py"
+alias launch_vicon="ros2 launch vicon_receiver all.launch.py"
+alias calibrate_cameras="ros2 run kinect2_bridge vicon_marker_calibration_tf.py"
 
 # velodyne (device IP + pose come from $SENSOR_CONFIG_DIR/velodyne.yaml)
-alias velodyne_launch="ros2 launch velodyne velodyne_with_tf.launch.py"
+alias launch_velodyne="ros2 launch velodyne velodyne_with_tf.launch.py"
 
 alias start="ros2 service call /start_recording std_srvs/srv/Trigger"
 alias stop="ros2 service call /stop_recording std_srvs/srv/Trigger"
