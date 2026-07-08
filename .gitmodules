@@ -1,7 +1,6 @@
-[submodule "openni2_camera"]
-	path = openni2_camera
-	url = https://github.com/ros-drivers/openni2_camera.git
-	branch = iron
 [submodule "kinect2_ros2"]
 	path = kinect2_ros2
 	url = https://github.com/omroali/kinect2_ros2
+[submodule "vicon_ros"]
+	path = vicon_ros
+	url = git@github.com:omroali/ros2-vicon-receiver.git
