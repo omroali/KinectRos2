@@ -1,0 +1,11 @@
+for each Velodyne node, we need to specify the device IP address. This is done in the launch file, but we can also set it here as a default value. 
+This is the highest priority configuration.
+
+
+this file should also contain the location of the velodyne, as well as its orientation. 
+This is similar to the multi_camera_config.yaml file for the Kinects.
+
+in theory there could be multiple velodyne devices
+
+
+current location is [0.216, 3.12, 2.57]
