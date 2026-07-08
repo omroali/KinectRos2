@@ -3,31 +3,80 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
+      network: host
     image: kinect-ros # resulting image name
 
     stdin_open: true
     tty: true
     command: /bin/bash # default shell when you attach
     network_mode: host # helps ROS 2 discovery (optional)
+    mem_limit: 16g
 
     privileged: true
     gpus: all
-    devices:
-      - /dev:/dev
-      - /dev/bus/usb:/dev/bus/usb
+
+    # Grant access to all USB devices (major 189) so hot-plugged
+    # Kinects are visible without a container restart.
+    device_cgroup_rules:
+      - "c 189:* rwm" # all USB bus devices (read/write/mknod)
+      - "c 81:* rwm" # video4linux (major 81)
+      - "c 13:* rwm" # input devices
+
+    # Add container user to groups matching the udev rules
+    group_add:
+      - plugdev
+      - video
+      - dialout
 
     volumes:
+      # Source code (mounted read-write for development)
       - ../kinect2_ros2:/home/ubuntu/base_ws/src/kinect2_ros2:rw
-      # - ../openni2_camera:/home/ubuntu/base_ws/src/openni2_camera:rw
+      - ../realsense_ros2:/home/ubuntu/base_ws/src/realsense_ros2:rw
+      - ../vicon_ros/:/home/ubuntu/base_ws/src/vicon_ros:rw
+      - ../velodyne_ros:/home/ubuntu/base_ws/src/velodyne_ros:rw
+
+      # Helper scripts
       - ../bash_scripts/container:/home/ubuntu/bash_scripts:rw
+
+      # Unified sensor configuration (single source of truth, see config/README.md)
+      - ../config:/home/ubuntu/config:rw
+
+      # X11 forwarding
       - /tmp/.X11-unix:/tmp/.X11-unix:rw
       - ${HOME}/.Xauthority:/home/ubuntu/.Xauthority:ro
-      - ../data:/home/ubuntu/data:rw
+
+      # RealSense SDK (host-installed libs)
+      - /usr/local/lib:/usr/local/lib:ro
+      - /usr/local/include:/usr/local/include:ro
+      - /usr/local/share/realsense2:/usr/local/share/realsense2:ro
+      - /usr/local/bin:/usr/local/bin:ro
+
+      # USB device tree — bind-mount as a volume (NOT devices: section)
+      # so that udev-added nodes appear live in the container
+      - /dev/bus/usb:/dev/bus/usb:rw
+      # Sysfs USB info for enumeration (libfreenect2 uses this)
+      - /sys/bus/usb:/sys/bus/usb:ro
+      # Video devices (Kinect v2 colour camera appears as V4L2)
+      - /dev/video:/dev/video:rw
+      # Input devices (audio, etc.)
+      - /dev/input:/dev/input:rw
+
+      # Data recording mount
+      - /media/oali/RECORDING_DATA:/home/ubuntu/data:rw
+
+      # Tmux config
+      - ./tmux.conf:/home/ubuntu/.tmux.conf:ro
 
     environment:
       - BASE_WS=/home/ubuntu/base_ws
+      - SENSOR_CONFIG_DIR=/home/ubuntu/config
       - DISPLAY=${DISPLAY:-:0}
       - XAUTHORITY=/home/ubuntu/.Xauthority
       - QT_X11_NO_MITSHM=1
+      - MAKEFLAGS=-j1
+      # Work around GCC 12 ICE: "double free or corruption during GIMPLE pass: fre"
+      - CXXFLAGS=-fno-tree-fre
+      - CFLAGS=-fno-tree-fre
       - NVIDIA_VISIBLE_DEVICES=all
-      - NVIDIA_DRIVER_CAPABILITIES=compute,utility,graphics
+      # "video" exposes libnvidia-encode, required for hevc_nvenc/ffmpeg
+      - NVIDIA_DRIVER_CAPABILITIES=compute,utility,graphics,video
