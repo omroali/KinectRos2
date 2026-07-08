@@ -9,12 +9,15 @@ RUN echo "deb http://packages.ros.org/ros2-testing/ubuntu $(lsb_release -cs) mai
 ARG  DEBIAN_FRONTEND=noninteractive
 ARG  USERNAME=ubuntu
 
-RUN apt-get update && apt-get install -y sudo git usbutils \
+RUN apt-get update && apt-get install -y sudo git usbutils udev \
+    && addgroup plugdev 2>/dev/null || true \
+    && addgroup video 2>/dev/null || true \
+    && addgroup dialout 2>/dev/null || true \
     && usermod -aG sudo ${USERNAME} \
     && usermod -aG plugdev ${USERNAME} \
     && usermod -aG video ${USERNAME} \
-    && echo "${USERNAME} ALL=(ALL) NOPASSWD:ALL" >> /etc/sudoers \
-    && addgroup dialout || true && usermod -a -G dialout ${USERNAME}
+    && usermod -aG dialout ${USERNAME} \
+    && echo "${USERNAME} ALL=(ALL) NOPASSWD:ALL" >> /etc/sudoers
 
 
 ENV BASE_WS=/home/${USERNAME}/base_ws
@@ -61,8 +64,15 @@ RUN apt-get update && \
     ros-jazzy-launch-pytest \
     ros-jazzy-ament-cmake-core \
     ros-jazzy-rosbag2-storage-mcap \
+    ros-jazzy-foxglove-bridge \
     libasio-dev \
     ros-jazzy-joy-linux \
+    ros-jazzy-diagnostic-updater \
+    ros-jazzy-image-transport \
+    ros-jazzy-image-transport-plugins \
+    ros-jazzy-cv-bridge \
+    ros-jazzy-nav-msgs \
+    ros-jazzy-tf2-ros \
     && \
     rm -rf /var/lib/apt/lists/*
 
@@ -75,6 +85,20 @@ RUN apt-get update && \
     pkg-config && \
     rm -rf /var/lib/apt/lists/*
 
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends \
+    libomp-dev \
+    libpcap-dev \
+    freeglut3-dev \
+    libglfw3-dev \
+    libxmu-dev \
+    libxi-dev \
+    ocl-icd-opencl-dev \
+    opencl-headers \
+    ocl-icd-libopencl1 \
+    clinfo && \
+    rm -rf /var/lib/apt/lists/*
+
 RUN git clone https://github.com/OpenKinect/libfreenect2.git
 WORKDIR /libfreenect2/build
 RUN cmake .. -DENABLE_CXX11=ON -DBUILD_OPENNI2_DRIVER=OFF -DENABLE_OPENCL=OFF -DENABLE_CUDA=ON -DENABLE_OPENGL=OFF -DENABLE_VAAPI=OFF -DENABLE_TEGRAJPEG=OFF -DCMAKE_INSTALL_PREFIX=/usr
@@ -84,6 +108,14 @@ RUN make install
 RUN python3 -m pip install --no-cache-dir --break-system-packages \
     tmule==1.5.9 \
     pyserial
+
+RUN git clone https://github.com/IntelRealSense/realsense-ros.git -b ros2-development \
+    ${BASE_WS}/src/realsense-ros \
+    && chown -R ${USERNAME}:${USERNAME} ${BASE_WS}/src/realsense-ros
+
+RUN mkdir -p /home/${USERNAME} && echo '{"context":{"dds":{"domain":0,"enabled":true}}}' \
+    > /home/${USERNAME}/.realsense-config.json \
+    && chown ${USERNAME}:${USERNAME} /home/${USERNAME}/.realsense-config.json
 
 USER ${USERNAME}
 WORKDIR /home/${USERNAME}
