@@ -8,10 +8,7 @@ import tempfile
 import yaml
 
 CONFIG_PATH = os.path.join(
-    os.environ.get("BASE_WS", "/home/ubuntu/base_ws"),
-    "src",
-    "realsense_ros2",
-    "realsense_config.yaml",
+    os.environ.get("SENSOR_CONFIG_DIR", "/home/ubuntu/config"), "realsense_cameras.yaml"
 )
 
 
