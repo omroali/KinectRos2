@@ -1,0 +1,59 @@
+recording_settings:
+  output_root: "/home/ubuntu/data"
+  uuid: "0000"
+
+  # Video encoder for color/IR streams.
+  # Options: libx265, hevc_nvenc, hevc_qsv, hevc_amf
+  video_encoder: "hevc_nvenc"
+
+  # H.265 quality (lower = better quality, larger files).
+  video_crf: 18
+
+  # Rosbag storage format. Options: mcap, sqlite3
+  bag_storage: "mcap"
+
+  # Bag-level compression. Mostly benefits depth (the bulk of bag size).
+  # Options:
+  #   none    - no compression
+  #   file    - outer zstd wrapper (.mcap.zstd). Best ratio, but the whole
+  #             file must be sequentially decompressed for ANY read; mcap's
+  #             index is hidden inside the wrapper and unusable for seeking.
+  #   message - chunk-level zstd inside a regular .mcap. Slightly worse
+  #             ratio, but mcap's index works so time-range / topic queries
+  #             across many bags only decompress the chunks they need.
+  #             Use this for downstream analysis workflows.
+  bag_compression: "message"
+
+  # Per-stream recording settings. Applied to every camera with record: true.
+  # Each stream:
+  #   enabled : whether to record this stream
+  #   mode    : "compressed" subscribes to the camera's JPEG topic (low
+  #             network bandwidth, lossy on top of the camera's compression).
+  #             "raw" subscribes to the uncompressed image topic and
+  #             re-encodes locally. Only "color" supports compressed mode.
+  #   fps     : target recording rate in Hz. The recorder subsamples on ROS
+  #             timestamps to hit this rate. Set equal to the publisher rate
+  #             (typically 30) for no subsampling.
+  streams:
+    color:
+      enabled: true
+      # raw ~46 MB/s vs compressed ~5 MB/s
+      mode: "compressed"
+      fps: 30
+    infrared_1:
+      enabled: true
+      mode: "raw"
+      fps: 15
+    infrared_2:
+      enabled: true
+      mode: "raw"
+      fps: 15
+    depth:
+      enabled: true
+
+
+# Stream	Captured	Target	Status
+# Color (RAW)	12 / 4.23 s @ 2.8 fps	30 fps	starving
+# Infrared_1	181 / 12.00 s @ 15.08 fps	15 fps	✓
+# Infrared_2	4 / 4.07 s @ ~1 fps	15 fps	starving
+# Bag	1 MB	—	also starved (most NIC budget went to Color RAW)
