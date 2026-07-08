@@ -32,7 +32,7 @@ trap cleanup SIGINT
 # Launch the ROS recording node in the background
 echo "Starting recording in the background... Monitoring will begin shortly."
 # Use setsid to create a new session, so we can kill the whole process group
-setsid ros2 launch kinect2_bridge kinect2_recording.launch.py > /dev/null 2>&1 &
+setsid ros2 launch kinect2_bridge kinect_recording.launch.py > /dev/null 2>&1 &
 ROS_PID=$!
 
 # Wait for the session directory to be created
