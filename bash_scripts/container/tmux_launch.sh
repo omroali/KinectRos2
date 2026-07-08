@@ -1,0 +1,37 @@
+#!/bin/bash
+
+SESSION="ros2"
+WS_SETUP="source /opt/ros/jazzy/setup.bash && source ~/base_ws/install/setup.bash"
+
+launch_window() {
+    local name="$1"
+    local cmd="$2"
+    tmux new-window -t "$SESSION" -n "$name" bash -i
+    sleep 2  # let .bashrc finish before typing
+    tmux send-keys -t "$SESSION:$name" "$cmd" Enter
+}
+
+tmux has-session -t "$SESSION" 2>/dev/null && {
+    echo "Session '$SESSION' already exists. Attach: tmux attach -t $SESSION"
+    exit 0
+}
+
+# Kinect
+tmux new-session -d -s "$SESSION" -n "kinect" bash -i
+sleep 2  # let .bashrc finish before typing
+tmux send-keys -t "$SESSION:kinect" "ros2 launch kinect2_bridge multi_kinect.launch.py" Enter
+
+# RealSense (cameras + TF, driven by realsense_config.yaml)
+launch_window "realsense" "ros2 launch realsense_tf_broadcaster realsense_multi_camera.launch.py"
+
+# Vicon
+launch_window "vicon" "ros2 launch vicon_receiver all.launch.py"
+
+# Calibration
+launch_window "calib" "ros2 run kinect2_bridge vicon_marker_calibration_tf.py"
+
+# Velodyne (device IP + pose come from $SENSOR_CONFIG_DIR/velodyne.yaml)
+launch_window "velodyne" "ros2 launch velodyne velodyne_with_tf.launch.py"
+
+tmux select-window -t "$SESSION:0"
+tmux attach -t "$SESSION"
