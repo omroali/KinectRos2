@@ -106,5 +106,5 @@ container). The launch system handles both transparently.
 |---------|-----|
 | NVENC not available | Ensure `video` is in `NVIDIA_DRIVER_CAPABILITIES` in `docker-compose.yml` |
 | Kinect not detected after unplug/replug | Run `refresh_usb` in the container |
-| Velodyne point cloud at origin | The TF node (`static_tf_from_yaml.py`) isn't running — check the `calib` tmux window |
+| Velodyne point cloud at origin | The TF node (`static_tf_from_yaml.py`) isn't running — check the `velodyne` tmux window (it's part of `velodyne_with_tf.launch.py`) |
 | `realsense_recorder` import errors after rebuild | Run `rm -rf build/realsense_recorder install/realsense_recorder` and rebuild |
