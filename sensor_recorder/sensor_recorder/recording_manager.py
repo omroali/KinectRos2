@@ -41,6 +41,7 @@ class RecordingManager(Node):
         self.declare_parameter("video_fps", 30.0)
         self.declare_parameter("bag_storage", "mcap")
         self.declare_parameter("bag_compression", "none")
+        self.declare_parameter("mcap_preset", "zstd_fast")
         self.declare_parameter("bag_cache_size_mb", 128)
 
         self._output_root = str(self.get_parameter("output_root").value)
@@ -59,12 +60,20 @@ class RecordingManager(Node):
         self._bag_storage = str(self.get_parameter("bag_storage").value)
         self._bag_cache_size_mb = int(self.get_parameter("bag_cache_size_mb").value)
         self._bag_compression = str(self.get_parameter("bag_compression").value).lower()
-        if self._bag_compression not in {"none", "file", "message"}:
+        if self._bag_compression not in {"none", "storage", "file", "message"}:
             self.get_logger().warn(
                 f"bag_compression='{self._bag_compression}' not recognized; "
-                "treating as 'none'. Valid values: none, file, message."
+                "treating as 'none'. Valid values: none, storage, file, message."
             )
             self._bag_compression = "none"
+
+        self._mcap_preset = str(self.get_parameter("mcap_preset").value).lower()
+        if self._mcap_preset not in {"fastwrite", "zstd_fast", "zstd_small"}:
+            self.get_logger().warn(
+                f"mcap_preset='{self._mcap_preset}' not recognized; "
+                "falling back to 'zstd_fast'. Valid values: fastwrite, zstd_fast, zstd_small."
+            )
+            self._mcap_preset = "zstd_fast"
 
         self._lock = threading.Lock()
         self._active = False
@@ -90,6 +99,7 @@ class RecordingManager(Node):
             f"  crf               : {self._video_crf}\n"
             f"  bag_storage       : {self._bag_storage}\n"
             f"  bag_compression   : {self._bag_compression}\n"
+            f"  mcap_preset       : {self._mcap_preset}\n"
             f"  cache_size_mb     : {self._bag_cache_size_mb}"
         )
 
@@ -148,7 +158,15 @@ class RecordingManager(Node):
             "--storage", self._bag_storage,
             "--max-cache-size", str(self._bag_cache_size_mb * 1024 * 1024),
         ]
-        if self._bag_compression in {"file", "message"}:
+        if self._bag_compression == "storage":
+            if self._bag_storage == "mcap":
+                cmd += ["--storage-preset-profile", self._mcap_preset]
+            else:
+                self.get_logger().warn(
+                    f"bag_compression='storage' requires bag_storage='mcap'; "
+                    f"current bag_storage='{self._bag_storage}'. Recording uncompressed."
+                )
+        elif self._bag_compression in {"file", "message"}:
             cmd += [
                 "--compression-mode", self._bag_compression,
                 "--compression-format", "zstd",

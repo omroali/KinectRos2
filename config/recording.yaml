@@ -25,15 +25,20 @@ recording_settings:
   # Storage format: mcap (recommended) or sqlite3.
   bag_storage: "mcap"
 
-  # Bag-level zstd compression:
+  # Bag compression. Options:
   #   none    - off
-  #   file    - outer .mcap.zstd wrapper: best ratio, but the whole file must
-  #             be decompressed sequentially for ANY read (no index seeking)
-  #   message - chunk-level zstd inside a regular .mcap: index still works
-  #             for time-range/topic queries. Use for analysis workflows.
-  # Kinect depth frames arrive already PNG-compressed (use_png in the
-  # bridge), so zstd mainly helps camera_info/tf and raw topics.
-  bag_compression: "message"
+  #   storage - mcap chunk-level zstd via --storage-preset-profile (RECOMMENDED
+  #             for mcap: better ratio than message mode, index stays usable)
+  #   message - rosbag2 per-message zstd (legacy; works with any storage)
+  #   file    - outer zstd wrapper; whole file must be decompressed to read
+  bag_compression: "storage"
+
+  # Only used when bag_compression is "storage".
+  #   zstd_fast  - fast zstd, moderate ratio (safe default)
+  #   zstd_small - 4MB chunks + slowest zstd, best ratio, highest CPU.
+  #                Try this if disk throughput/size is the bottleneck; watch
+  #                the recorder for dropped messages.
+  mcap_preset: "zstd_fast"
 
   # In-memory cache per bag recorder (MB). Buffers against disk latency
   # spikes; raise for slow drives, lower if RAM is tight. (Kinect manager)
@@ -73,7 +78,11 @@ recording_settings:
 
   # ───────────────────────── Velodyne ─────────────────────────────────────
   velodyne:
-    # LiDAR topics recorded in the bag when the Velodyne entry in
-    # velodyne.yaml has record: true.
+    # Recorded for every unit in velodyne.yaml with record: true.
+    # Names are relative to each unit's namespace (/<unit>/<topic>).
     topics:
-      - "/velodyne_points"
+      - "velodyne_points"     # decoded PointCloud2 — ready to use, large
+      # - "velodyne_packets"  # raw UDP packets — ~4x smaller, lossless, but
+      #                       # needs replay through velodyne_pointcloud to
+      #                       # reconstruct clouds. Enable to save disk;
+      #                       # you may then disable velodyne_points.

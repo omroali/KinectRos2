@@ -84,6 +84,9 @@ def launch_setup(context, *args, **kwargs):
                     "bag_compression": recording_settings.get(
                         "bag_compression", "none"
                     ),
+                    "mcap_preset": recording_settings.get(
+                        "mcap_preset", "zstd_fast"
+                    ),
                     "bag_cache_size_mb": int(
                         recording_settings.get("bag_cache_size_mb", 128)
                     ),
