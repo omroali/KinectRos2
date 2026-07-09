@@ -59,11 +59,11 @@ recording_settings:
       mode: "compressed"
       fps: 30
     infrared_1:
-      enabled: true
+      enabled: false
       mode: "raw"
       fps: 15
     infrared_2:
-      enabled: true
+      enabled: false
       mode: "raw"
       fps: 15
     depth:
