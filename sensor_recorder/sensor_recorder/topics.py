@@ -157,7 +157,8 @@ def realsense_setup(cameras: list[dict], user_streams: dict | None) -> dict:
                 f"Valid drivers: {sorted(_STREAM_SUFFIX_BY_DRIVER)}"
             )
         suffix_by_stream = _STREAM_SUFFIX_BY_DRIVER[driver]
-        prefix = f"/realsense/D555_{serial}"
+        model = camera.get("model", "D555")
+        prefix = f"/realsense/{model}_{serial}"
 
         for stream_name in ("color", "infrared_1", "infrared_2"):
             cfg = streams[stream_name]

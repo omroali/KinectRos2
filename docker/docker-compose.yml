@@ -75,6 +75,8 @@ services:
       - XAUTHORITY=/home/ubuntu/.Xauthority
       - QT_X11_NO_MITSHM=1
       - MAKEFLAGS=-j1
+      - CC=/usr/bin/gcc-13
+      - CXX=/usr/bin/g++-13
       # Work around GCC 12 ICE: "double free or corruption during GIMPLE pass: fre"
       - CXXFLAGS=-fno-tree-fre
       - CFLAGS=-fno-tree-fre

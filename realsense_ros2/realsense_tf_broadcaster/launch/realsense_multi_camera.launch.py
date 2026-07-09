@@ -58,6 +58,7 @@ def _launch_setup(context, *args, **kwargs):
             continue
 
         serial = str(cam_cfg.get("serial", ""))
+        model = str(cam_cfg.get("model", "D555"))
         namespace = cam_cfg.get("namespace", cam_name)
         frame = cam_cfg.get("frame", f"{namespace}_link")
 
@@ -73,13 +74,12 @@ def _launch_setup(context, *args, **kwargs):
             node = Node(
                 package="realsense2_camera",
                 executable="realsense2_camera_node",
-                name=f"{cam_name}_camera",
+                name=f"{model}_{serial}",
+                namespace="realsense",
                 output="screen",
                 parameters=[
                     {
-                        "serial_no": serial,
-                        "camera_name": f"D555_{serial}",
-                        "camera_namespace": "realsense",
+                        "serial_no": f"_{serial}",
                         "base_frame_id": frame,
                         "publish_tf": True,
                         "enable_color": True,

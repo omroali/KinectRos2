@@ -73,9 +73,11 @@ RUN apt-get update && \
     ros-jazzy-cv-bridge \
     ros-jazzy-nav-msgs \
     ros-jazzy-tf2-ros \
-    ros-jazzy-realsense2-camera \
-    ros-jazzy-realsense2-camera-msgs \
     && \
+    rm -rf /var/lib/apt/lists/*
+
+RUN apt-get update && \
+    apt-get purge -y ros-jazzy-librealsense2 2>/dev/null || true && \
     rm -rf /var/lib/apt/lists/*
 
 RUN apt-get update && \
@@ -106,6 +108,10 @@ WORKDIR /libfreenect2/build
 RUN cmake .. -DENABLE_CXX11=ON -DBUILD_OPENNI2_DRIVER=OFF -DENABLE_OPENCL=OFF -DENABLE_CUDA=ON -DENABLE_OPENGL=OFF -DENABLE_VAAPI=OFF -DENABLE_TEGRAJPEG=OFF -DCMAKE_INSTALL_PREFIX=/usr
 RUN make
 RUN make install
+
+RUN git clone https://github.com/realsenseai/realsense-ros.git \
+    -b 4.57.7 --depth 1 ${BASE_WS}/src/realsense-ros \
+    && chown -R ${USERNAME}:${USERNAME} ${BASE_WS}/src/realsense-ros
 
 RUN python3 -m pip install --no-cache-dir --break-system-packages \
     tmule==1.5.9 \

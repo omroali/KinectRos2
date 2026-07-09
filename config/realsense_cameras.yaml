@@ -3,6 +3,7 @@ world_frame: map
 cameras:
   realsense_d55_1:
     serial: "419122302628"
+    model: "D555"
     driver: dds
     ip: "192.168.11.55"
     enabled: true
@@ -27,7 +28,8 @@ cameras:
 
   realsense_d55_2:
     serial: "419222301842"
-    driver: dds
+    model: "D555"
+    driver: usb
     ip: "192.168.12.55"
     enabled: true
     record: true
