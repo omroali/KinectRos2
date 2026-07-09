@@ -9,7 +9,7 @@ their installed package copies if a file is missing.
 |------|-------------|
 | `kinect_cameras.yaml` | `multi_kinect.launch.py`, `vicon_marker_calibration_tf.py`, `unified_recording.launch.py` |
 | `realsense_cameras.yaml` | `realsense_multi_camera.launch.py`, `unified_recording.launch.py` |
-| `velodyne.yaml` | `velodyne_with_tf.launch.py` (driver IP + map→velodyne pose), `unified_recording.launch.py` |
+| `velodyne.yaml` | `velodyne_with_tf.launch.py` (one entry per unit with unique `port`, driver IP + map→velodyne pose, topic namespaced by entry name), `unified_recording.launch.py` |
 | `recording.yaml` | `unified_recording.launch.py` (encoder, CRF, bag storage/compression, per-stream toggles, vicon, velodyne) |
 
 Edits take effect on the next node (re)launch — no rebuild required.

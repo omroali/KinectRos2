@@ -6,7 +6,7 @@ Docker container. Sensors:
 - 2× **Kinect v2** (USB)
 - 2× **RealSense D555** (PoE, optional USB via `driver: usb`)
 - 1× **Vicon** motion-capture system
-- 1× **Velodyne VLP-16** LiDAR
+- 1× **Velodyne VLP-16** LiDAR(s)
 
 All sensors are configured from a single `config/` directory. Recording is
 controlled by one `/start_recording` → `/stop_recording` service pair. Each take
@@ -106,5 +106,6 @@ container). The launch system handles both transparently.
 |---------|-----|
 | NVENC not available | Ensure `video` is in `NVIDIA_DRIVER_CAPABILITIES` in `docker-compose.yml` |
 | Kinect not detected after unplug/replug | Run `refresh_usb` in the container |
-| Velodyne point cloud at origin | The TF node (`static_tf_from_yaml.py`) isn't running — check the `velodyne` tmux window (it's part of `velodyne_with_tf.launch.py`) |
+| Velodyne point cloud at origin | The TF node (`static_tf_from_yaml.py`) isn't running — check the `velodyne` tmux window (it's part of `velodyne_with_tf.launch.py`). Verify `/velodyne_1/velodyne_points` is publishing. |
+| Second Velodyne launches but publishes nothing | Both units are on the same UDP port; give each a unique destination port in its web interface and in `velodyne.yaml`. |
 | `realsense_recorder` import errors after rebuild | Run `rm -rf build/realsense_recorder install/realsense_recorder` and rebuild |

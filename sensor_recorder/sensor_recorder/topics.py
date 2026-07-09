@@ -85,7 +85,7 @@ _STREAM_SUFFIX_BY_DRIVER = {
     },
 }
 
-DEFAULT_VELODYNE_TOPICS = ["/velodyne_points"]
+DEFAULT_VELODYNE_TOPICS = ["velodyne_points"]
 DEFAULT_VICON_REGEX = "/vicon/.*"
 
 
@@ -217,13 +217,23 @@ def realsense_setup(cameras: list[dict], user_streams: dict | None) -> dict:
 
 
 def velodyne_setup(velodyne_cfg: dict, recording_cfg: dict) -> list[str]:
-    cameras = recorded_cameras(velodyne_cfg)
-    if not cameras:
+    """Per-unit bag topics. Configured names are relative to each unit's
+    namespace (/<name>/<topic>); absolute names (leading /) pass through
+    unchanged for backward compatibility."""
+    units = recorded_cameras(velodyne_cfg)
+    if not units:
         return []
-    topics = (recording_cfg.get("velodyne", {}) or {}).get(
+    names = (recording_cfg.get("velodyne", {}) or {}).get(
         "topics", DEFAULT_VELODYNE_TOPICS
     )
-    return [str(t) for t in topics if t]
+    topics: list[str] = []
+    for unit in units:
+        for name in names:
+            name = str(name)
+            if not name:
+                continue
+            topics.append(name if name.startswith("/") else f"/{unit['name']}/{name}")
+    return topics
 
 
 def vicon_regex(recording_cfg: dict) -> str:

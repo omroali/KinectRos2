@@ -1,29 +1,26 @@
-# Velodyne VLP-16 configuration.
-#
-# `cameras:` naming is shared with the other sensor configs so the same
-# tooling (static_tf_from_yaml.py) can publish the map -> velodyne transform.
-#
-# To change the LiDAR pose: edit position/orientation below and save.
-# static_tf_from_yaml.py watches this file and re-publishes the transform
-# automatically — no restart needed.
-#
-# `frame` must match the driver's frame_id (default "velodyne") so the
-# published point cloud lands on this transform.
+# Each unit MUST have a unique `port` (set in the sensor's web interface).
+# Topics are namespaced by entry name: /velodyne_1/velodyne_points, ...
+# Pose edits are live: static_tf_from_yaml.py watches this file.
 
 world_frame: map
 
 cameras:
-  velodyne:
+  velodyne_1:
     enabled: true
     record: true
-    frame: velodyne
+    frame: velodyne_1
     device_ip: "10.68.0.55"
+    port: 2368
     model: VLP16
-    position:
-      x: 0.0
-      y: 0.0
-      z: 1.0
-    orientation:
-      roll: 0.0
-      pitch: 0.0
-      yaw: 0.0
+    position: {x: 0.0, y: 0.0, z: 1.0}
+    orientation: {roll: 0.0, pitch: 0.0, yaw: 0.0}
+
+  # velodyne_2:
+  #   enabled: true
+  #   record: true
+  #   frame: velodyne_2
+  #   device_ip: "10.68.0.56"
+  #   port: 2369
+  #   model: VLP16
+  #   position: {x: 0.0, y: 0.0, z: 1.0}
+  #   orientation: {roll: 0.0, pitch: 0.0, yaw: 0.0}
