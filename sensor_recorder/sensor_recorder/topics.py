@@ -277,6 +277,7 @@ def build_recording_setup(
         setup[key] += realsense[key]
 
     setup["bag_topics"] += velodyne_setup(velodyne_cfg, recording_settings)
+    setup["bag_topics"] += [str(t) for t in recording_settings.get("bag_extra_topics", []) or []]
     setup["bag_regex"] = vicon_regex(recording_settings)
 
     # De-duplicate while preserving order.

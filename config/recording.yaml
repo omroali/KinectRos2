@@ -97,3 +97,9 @@ recording_settings:
       #                       # needs replay through velodyne_pointcloud to
       #                       # reconstruct clouds. Enable to save disk;
       #                       # you may then disable velodyne_points.
+
+  # ──────────────────────── Extra bag topics ──────────────────────────────
+  # Any arbitrary topics to record in the bag, e.g. app events, debug
+  # channels, etc. Use exact topic names.
+  bag_extra_topics:
+    - "/sharp/events"
