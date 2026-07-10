@@ -12,7 +12,9 @@ Each take lands in a single session directory:
 """
 
 import os
+import random
 import signal
+import socket
 import subprocess
 import threading
 import time
@@ -43,6 +45,10 @@ class RecordingManager(Node):
         self.declare_parameter("bag_compression", "none")
         self.declare_parameter("mcap_preset", "zstd_fast")
         self.declare_parameter("bag_cache_size_mb", 128)
+        self.declare_parameter("nexus_capture", False)
+        self.declare_parameter("nexus_host", "192.168.10.1")
+        self.declare_parameter("nexus_port", 3030)
+        self.declare_parameter("nexus_path", "")
 
         self._output_root = str(self.get_parameter("output_root").value)
         self._participant_id = str(self.get_parameter("participant_id").value)
@@ -82,6 +88,11 @@ class RecordingManager(Node):
         self._bag_proc = None
         self._color_log = None
         self._bag_log = None
+        self._nexus_capture = bool(self.get_parameter("nexus_capture").value)
+        self._nexus_host = str(self.get_parameter("nexus_host").value)
+        self._nexus_port = int(self.get_parameter("nexus_port").value)
+        self._nexus_path = str(self.get_parameter("nexus_path").value)
+        self._nexus_trial_name = ""
 
         self._start_service = self.create_service(Trigger, "start_recording", self._on_start)
         self._stop_service = self.create_service(Trigger, "stop_recording", self._on_stop)
@@ -100,7 +111,11 @@ class RecordingManager(Node):
             f"  bag_storage       : {self._bag_storage}\n"
             f"  bag_compression   : {self._bag_compression}\n"
             f"  mcap_preset       : {self._mcap_preset}\n"
-            f"  cache_size_mb     : {self._bag_cache_size_mb}"
+            f"  cache_size_mb     : {self._bag_cache_size_mb}\n"
+            f"  nexus_capture     : {self._nexus_capture}\n"
+            f"  nexus_host        : {self._nexus_host}\n"
+            f"  nexus_port        : {self._nexus_port}\n"
+            f"  nexus_path        : {self._nexus_path}"
         )
 
     def _session_path(self) -> str:
@@ -189,7 +204,7 @@ class RecordingManager(Node):
             self._bag_proc = None
             self._session_dir = ""
             self._color_log = None
-            self._bag_log = None
+        self._bag_log = None
 
         for proc in (color_proc, bag_proc):
             if proc is None:
@@ -221,6 +236,59 @@ class RecordingManager(Node):
                 pass
 
         return session_dir
+
+    def _nexus_send(self, xml_payload: str):
+        sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        sock.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
+        sock.sendto(xml_payload.encode("utf-8") + b"\x00",
+                     (self._nexus_host, self._nexus_port))
+        sock.close()
+
+    def _nexus_start(self):
+        packet_id = random.randint(0, 999999)
+        trial = f"{self._participant_id}_{datetime.now().strftime('%Y%m%d_%H%M%S')}"
+        self._nexus_trial_name = trial
+        payload = (
+            '<?xml version="1.0" encoding="UTF-8" standalone="no"?>\n'
+            '<CaptureStart>\n'
+            f'  <Name VALUE="{trial}"/>\n'
+            '  <Notes VALUE=""/>\n'
+            '  <Description VALUE=""/>\n'
+            f'  <DatabasePath VALUE="{self._nexus_path}"/>\n'
+            '  <Delay VALUE="0"/>\n'
+            f'  <PacketID VALUE="{packet_id}"/>\n'
+            '</CaptureStart>\n'
+        )
+        try:
+            self._nexus_send(payload)
+            self.get_logger().info(
+                f"Nexus capture start sent to {self._nexus_host}:{self._nexus_port}"
+                f"  trial={trial}  packet_id={packet_id}"
+            )
+        except OSError as exc:
+            self.get_logger().warn(f"Failed to send Nexus start: {exc}")
+
+    def _nexus_stop(self):
+        if not self._nexus_trial_name:
+            return
+        packet_id = random.randint(0, 999999)
+        payload = (
+            '<?xml version="1.0" encoding="UTF-8" standalone="no"?>\n'
+            '<CaptureStop>\n'
+            f'  <Name VALUE="{self._nexus_trial_name}"/>\n'
+            f'  <DatabasePath VALUE="{self._nexus_path}"/>\n'
+            f'  <PacketID VALUE="{packet_id}"/>\n'
+            '</CaptureStop>\n'
+        )
+        try:
+            self._nexus_send(payload)
+            self.get_logger().info(
+                f"Nexus capture stop sent to {self._nexus_host}:{self._nexus_port}"
+                f"  trial={self._nexus_trial_name}"
+            )
+        except OSError as exc:
+            self.get_logger().warn(f"Failed to send Nexus stop: {exc}")
+        self._nexus_trial_name = ""
 
     def _on_start(self, request, response):
         del request
@@ -276,6 +344,8 @@ class RecordingManager(Node):
             self._active = True
 
         self.get_logger().info(f"Recording started in {self._session_dir}")
+        if self._nexus_capture:
+            self._nexus_start()
         response.success = True
         response.message = f"Recording started in {self._session_dir}"
         return response
@@ -289,6 +359,8 @@ class RecordingManager(Node):
                 return response
 
         session_dir = self._stop_processes()
+        if self._nexus_capture:
+            self._nexus_stop()
         self.get_logger().info(f"Recording stopped: {session_dir}")
         response.success = True
         response.message = f"Recording stopped: {session_dir}"
@@ -297,6 +369,8 @@ class RecordingManager(Node):
     def destroy_node(self):
         if self._active:
             self._stop_processes()
+            if self._nexus_capture:
+                self._nexus_stop()
         super().destroy_node()
 
 

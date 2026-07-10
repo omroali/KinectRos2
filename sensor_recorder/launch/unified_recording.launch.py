@@ -49,6 +49,12 @@ def launch_setup(context, *args, **kwargs):
         kinect_cfg, realsense_cfg, velodyne_cfg, recording_settings
     )
 
+    vicon_cfg = recording_settings.get("vicon", {}) or {}
+    nexus_capture = bool(vicon_cfg.get("nexus_capture", False))
+    nexus_host = str(vicon_cfg.get("nexus_host", "192.168.10.1"))
+    nexus_port = int(vicon_cfg.get("nexus_port", 3030))
+    nexus_path = str(vicon_cfg.get("nexus_path", ""))
+
     # launch_ros can't infer the element type of an empty STRING_ARRAY
     # (it ends up as () and fails validation). Pad with a single empty
     # string; the manager filters falsy entries on read.
@@ -90,6 +96,10 @@ def launch_setup(context, *args, **kwargs):
                     "bag_cache_size_mb": int(
                         recording_settings.get("bag_cache_size_mb", 128)
                     ),
+                    "nexus_capture": nexus_capture,
+                    "nexus_host": nexus_host,
+                    "nexus_port": nexus_port,
+                    "nexus_path": nexus_path,
                 }
             ],
         )

@@ -1,4 +1,5 @@
-# Unified recording settings — read by BOTH the Kinect and RealSense
+# Unified recording settings — read by all sensor
+# Kinect, RealSense, Veloyne, Vicon
 # recording managers. Each manager only uses the keys relevant to it.
 #
 # This file lives in the repo-level config/ directory, mounted into the
@@ -75,6 +76,16 @@ recording_settings:
     # markers). All topics matching topic_regex are added to the bag.
     enabled: true
     topic_regex: "/vicon/.*"
+
+    # ── Nexus UDP capture trigger ───
+    # When enabled, /start_recording and /stop_recording also send UDP
+    # capture commands to Vicon Nexus (Auto Capture Setup must be armed).
+    nexus_capture: true
+    # Nexus machine IP and UDP port (set in Nexus → Auto Capture Setup)
+    nexus_host: "192.168.10.1"
+    nexus_port: 3030
+    # Database path on the Nexus PC where captures are stored
+    nexus_path: ""
 
   # ───────────────────────── Velodyne ─────────────────────────────────────
   velodyne:
