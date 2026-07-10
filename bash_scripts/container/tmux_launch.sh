@@ -19,7 +19,7 @@ tmux has-session -t "$SESSION" 2>/dev/null && {
 # Kinect
 tmux new-session -d -s "$SESSION" -n "kinect" bash -i
 sleep 2  # let .bashrc finish before typing
-tmux send-keys -t "$SESSION:kinect" "ros2 launch kinect2_bridge multi_kinect.launch.py" Enter
+tmux send-keys -t "$SESSION:kinect" "ros2 launch kinect2_bridge multi_kinect.launch.py launch_rviz:=false" Enter
 
 # RealSense (cameras + TF, driven by realsense_config.yaml)
 launch_window "realsense" "ros2 launch realsense_tf_broadcaster realsense_multi_camera.launch.py"
@@ -32,6 +32,9 @@ launch_window "calib" "ros2 run kinect2_bridge vicon_marker_calibration_tf.py"
 
 # Velodyne (device IP + pose come from $SENSOR_CONFIG_DIR/velodyne.yaml)
 launch_window "velodyne" "ros2 launch velodyne velodyne_with_tf.launch.py"
+
+# RViz
+launch_window "rviz" "rviz2 -d \$(ros2 pkg prefix kinect2_bridge)/share/kinect2_bridge/launch/kinect_viz.rviz"
 
 # Unified recording manager (service-driven — use 'start'/'stop' aliases to control)
 launch_window "record" "ros2 launch sensor_recorder unified_recording.launch.py"

@@ -82,6 +82,9 @@ alias start="ros2 service call /start_recording std_srvs/srv/Trigger"
 alias stop="ros2 service call /stop_recording std_srvs/srv/Trigger"
 
 alias launch_all="bash $HOME/bash_scripts/tmux_launch.sh"
+alias terminate_all="bash $HOME/bash_scripts/tmux_terminate.sh"
+
+
 alias refresh_usb="bash $HOME/bash_scripts/refresh_usb.sh"
 
 # Force a clean rebuild (deletes build/ install/ log/ first)
