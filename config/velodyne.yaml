@@ -9,7 +9,10 @@ cameras:
     enabled: true
     record: true
     frame: velodyne_1
-    device_ip: "10.68.0.55"
+    # TEMP: sensor is currently at factory default IP, broadcasting to :2368.
+    # Proper fix: set the sensor to 10.68.0.55 via its web UI (see README),
+    # then restore device_ip: "10.68.0.55".
+    device_ip: "192.168.1.201"
     port: 2368
     model: VLP16
     position: {x: 0.0, y: 0.0, z: 1.0}
