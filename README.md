@@ -32,7 +32,7 @@ lands in a single session folder with H.265 videos and a zstd-compressed mcap ba
 cd docker && docker compose up -d
 
 # 2. Enter the container
-docker exec -it docker-kinect-ros-1 bash
+docker exec -it docker-sharp-sensor-rig-1 bash
 
 # 3. First time only — build the ROS workspace
 wbuild

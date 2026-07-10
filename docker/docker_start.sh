@@ -2,7 +2,7 @@
 
 # --- Configuration ---
 COMPOSE_FILE="docker-compose.yml"
-SERVICE_NAME="kinect-ros"
+SERVICE_NAME="sharp-sensor-rig"
 
 # Check if on Linux (most straightforward X11 forwarding)
 if [[ "$OSTYPE" == "linux-gnu"* ]]; then

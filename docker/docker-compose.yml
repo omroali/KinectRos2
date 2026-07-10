@@ -1,10 +1,10 @@
 services:
-  kinect-ros:
+  sharp-sensor-rig:
     build:
       context: .
       dockerfile: Dockerfile
       network: host
-    image: kinect-ros # resulting image name
+    image: sharp-sensor-rig # resulting image name
 
     stdin_open: true
     tty: true
