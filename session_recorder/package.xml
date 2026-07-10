@@ -1,6 +1,6 @@
 <?xml version="1.0"?>
 <package format="3">
-  <name>sensor_recorder</name>
+  <name>session_recorder</name>
   <version>0.1.0</version>
   <description>Unified service-driven recording manager for all sensors (Kinect, RealSense, Velodyne, Vicon).</description>
   <maintainer email="oali@example.com">oali</maintainer>

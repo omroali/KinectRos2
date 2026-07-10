@@ -15,7 +15,7 @@ from launch import LaunchDescription
 from launch.actions import DeclareLaunchArgument, OpaqueFunction
 from launch.substitutions import LaunchConfiguration
 from launch_ros.actions import Node
-from sensor_recorder.topics import build_recording_setup, load_yaml
+from session_recorder.topics import build_recording_setup, load_yaml
 
 
 def _resolve_config(filename: str, fallback: str) -> str:
@@ -63,7 +63,7 @@ def launch_setup(context, *args, **kwargs):
 
     return [
         Node(
-            package="sensor_recorder",
+            package="session_recorder",
             executable="recording_manager",
             name="recording_manager",
             output="screen",

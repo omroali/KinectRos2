@@ -3,7 +3,7 @@
 # live dashboard, and stops the recording on Ctrl+C.
 #
 # Requires the recording service node to be running already:
-#   ros2 launch sensor_recorder unified_recording.launch.py
+#   ros2 launch session_recorder unified_recording.launch.py
 # (tmux_launch.sh opens it in the "record" window; alias: launch_recording)
 
 STOPPED=0
@@ -28,7 +28,7 @@ trap stop_recording SIGINT SIGTERM
 if ! timeout 5 ros2 service type /start_recording > /dev/null 2>&1; then
     echo "Error: /start_recording service not found."
     echo "Start the recording service first:"
-    echo "  ros2 launch sensor_recorder unified_recording.launch.py   (alias: launch_recording)"
+    echo "  ros2 launch session_recorder unified_recording.launch.py   (alias: launch_recording)"
     exit 1
 fi
 

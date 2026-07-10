@@ -68,7 +68,7 @@ source ${BASE_WS}/install/setup.bash
 echo "ROS 2 workspace setup and sourced. Happy robot wrangling!"
 
 alias launch_kinect="ros2 launch kinect2_bridge multi_kinect.launch.py"
-alias launch_recording="ros2 launch sensor_recorder unified_recording.launch.py"
+alias launch_recording="ros2 launch session_recorder unified_recording.launch.py"
 alias launch_realsense="ros2 launch realsense_tf_broadcaster realsense_multi_camera.launch.py"
 
 # vicon

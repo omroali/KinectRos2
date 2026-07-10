@@ -150,7 +150,7 @@ class RecordingManager(Node):
             return "[" + ",".join(values or ['""']) + "]"
 
         cmd = [
-            "ros2", "run", "sensor_recorder", "colour_video_recorder",
+            "ros2", "run", "session_recorder", "colour_video_recorder",
             "--ros-args",
             "-p", f"topics:={yaml_array(self._color_topics)}",
             "-p", f"compressed_topics:={yaml_array(self._color_compressed_topics)}",

@@ -1,6 +1,6 @@
 from setuptools import find_packages, setup
 
-package_name = "sensor_recorder"
+package_name = "session_recorder"
 
 setup(
     name=package_name,
@@ -19,9 +19,9 @@ setup(
     license="Apache-2.0",
     entry_points={
         "console_scripts": [
-            "colour_video_recorder = sensor_recorder.colour_video_recorder:main",
-            "recording_manager = sensor_recorder.recording_manager:main",
-            "video_to_image_publisher = sensor_recorder.video_to_image_publisher:main",
+            "colour_video_recorder = session_recorder.colour_video_recorder:main",
+            "recording_manager = session_recorder.recording_manager:main",
+            "video_to_image_publisher = session_recorder.video_to_image_publisher:main",
         ],
     },
 )

@@ -94,7 +94,7 @@ container). The launch system handles both transparently.
 1. Add an entry to the appropriate YAML in `config/` (with `enabled: true` and
    `record: true`)
 2. If the sensor has new topic patterns, extend
-   `sensor_recorder/sensor_recorder/topics.py`
+   `session_recorder/session_recorder/topics.py`
 3. Add a tmux window in `bash_scripts/container/tmux_launch.sh` and an alias in
    `bash_scripts/container/bashrc_extensions.sh`
 
