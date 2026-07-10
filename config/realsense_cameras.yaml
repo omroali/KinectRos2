@@ -4,7 +4,7 @@ cameras:
   realsense_d55_1:
     serial: "419122302628"
     model: "D555"
-    driver: dds
+    driver: usb
     ip: "192.168.11.55"
     enabled: true
     record: true
