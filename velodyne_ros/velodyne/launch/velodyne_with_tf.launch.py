@@ -53,23 +53,27 @@ def generate_launch_description():
     for entry_name, entry in entries:
         model = str(entry.get("model", "")).upper()
         if model != "VLP16":
-            actions.append(LogInfo(
-                msg=f"Unknown model '{model}' for {entry_name}; only VLP16 supported. Skipping."
-            ))
+            actions.append(
+                LogInfo(
+                    msg=f"Unknown model '{model}' for {entry_name}; only VLP16 supported. Skipping."
+                )
+            )
             continue
 
         actions.append(
-            GroupAction([
-                PushRosNamespace(entry_name),
-                IncludeLaunchDescription(
-                    PythonLaunchDescriptionSource(vlp16_launch),
-                    launch_arguments={
-                        "device_ip": str(entry.get("device_ip", "")),
-                        "port": str(entry.get("port", 2368)),
-                        "frame_id": str(entry.get("frame", entry_name)),
-                    }.items(),
-                ),
-            ])
+            GroupAction(
+                [
+                    PushRosNamespace(entry_name),
+                    IncludeLaunchDescription(
+                        PythonLaunchDescriptionSource(vlp16_launch),
+                        launch_arguments={
+                            "device_ip": str(entry.get("device_ip", "")),
+                            "port": str(entry.get("port", 2368)),
+                            "frame_id": str(entry.get("frame", entry_name)),
+                        }.items(),
+                    ),
+                ]
+            )
         )
 
     if os.path.isfile(config_path):
